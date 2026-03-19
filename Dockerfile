@@ -30,7 +30,7 @@ RUN npm install --omit=dev --legacy-peer-deps
 
 COPY server/prisma ./prisma/
 
-RUN npx prisma generate
+RUN npx prisma@5.22.0 generate
 
 
 # ============================
