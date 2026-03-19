@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XP Debug Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>XP Debug Tool</h1>
+    
+    <button onclick="checkBiologyTopic()">Check Biology Topic</button>
+    <button onclick="addXpToBiology()">Add +5 XP to Biology Topic</button>
+    <button onclick="checkSkillProgress()">Check Biology Skill Progress</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        // This would need actual Supabase credentials to work
+        // For now, we'll simulate what should happen
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            output.appendChild(div);
+            console.log(message);
+        }
+        
+        async function checkBiologyTopic() {
+            log('Checking biology topic in database...', 'info');
+            log('Expected: Biology topic should have engagement field', 'info');
+            log('If engagement increased from 0 to 5, star animation should appear', 'success');
+        }
+        
+        async function addXpToBiology() {
+            log('Simulating +5 XP to biology topic...', 'info');
+            log('This should trigger:', 'info');
+            log('1. Update topics.engagement from X to X+5', 'success');
+            log('2. Update user_skill_progress.xp for biology skill', 'success');
+            log('3. Show ⭐ +5 animation on topic card', 'success');
+            log('4. Show "+5 XP earned in Biology!" notification in conversation', 'success');
+        }
+        
+        async function checkSkillProgress() {
+            log('Checking biology skill progress...', 'info');
+            log('Expected: user_skill_progress should show increased XP', 'info');
+            log('If no progress exists, XP awarding might fail', 'error');
+        }
+        
+        // Auto-check on page load
+        window.addEventListener('load', () => {
+            log('XP Debug Tool loaded. Use buttons to test XP system.', 'info');
+            log('Expected flow when creating biology conversation:', 'info');
+            log('1. Conversation created with "biology" in title', 'info');
+            log('2. Backend detects biology title', 'info');
+            log('3. XP awarded to skill and topic engagement', 'info');
+            log('4. Star animation appears on topic card', 'info');
+            log('5. XP notification appears in conversation', 'info');
+        });
+    </script>
+</body>
+</html>

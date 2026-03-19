@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voice Recognition Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Voice Recognition Debug Tool</h1>
+    
+    <button onclick="checkSupport()">Check Browser Support</button>
+    <button onclick="checkPermissions()">Check Microphone Permission</button>
+    <button onclick="testMicrophone()">Test Microphone Access</button>
+    <button onclick="startListening()">Start Voice Recognition</button>
+    <button onclick="stopListening()">Stop Voice Recognition</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        let recognition = null;
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            output.appendChild(div);
+            console.log(message);
+        }
+        
+        function checkSupport() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const supported = !!SpeechRecognition;
+            
+            log(`Browser: ${navigator.userAgent}`, 'info');
+            log(`Protocol: ${location.protocol}`, 'info');
+            log(`Hostname: ${location.hostname}`, 'info');
+            log(`Speech Recognition Support: ${supported ? 'YES' : 'NO'}`, supported ? 'success' : 'error');
+            
+            if (!supported) {
+                log('Speech Recognition not supported. Try Chrome, Edge, or Safari.', 'error');
+            } else {
+                log('Speech Recognition is supported!', 'success');
+            }
+        }
+        
+        async function checkPermissions() {
+            try {
+                const result = await navigator.permissions.query({ name: 'microphone' });
+                log(`Microphone permission: ${result.state}`, result.state === 'granted' ? 'success' : 'error');
+                
+                result.addEventListener('change', () => {
+                    log(`Permission changed to: ${result.state}`, 'info');
+                });
+            } catch (error) {
+                log(`Permission check failed: ${error.message}`, 'error');
+                log('Permissions API not supported, trying microphone test instead...', 'info');
+                testMicrophone();
+            }
+        }
+        
+        async function testMicrophone() {
+            try {
+                log('Requesting microphone access...', 'info');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('Microphone access: GRANTED ✅', 'success');
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                log(`Microphone access: DENIED ❌ - ${error.message}`, 'error');
+                log('Please allow microphone access in your browser settings.', 'error');
+            }
+        }
+        
+        function startListening() {
+            if (!recognition) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    log('Speech Recognition not supported!', 'error');
+                    return;
+                }
+                
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = () => {
+                    log('🎤 Listening... Speak now!', 'success');
+                };
+                
+                recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = 0; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    
+                    if (finalTranscript) {
+                        log(`✅ Final: "${finalTranscript}"`, 'success');
+                    }
+                    if (interimTranscript) {
+                        log(`🔄 Interim: "${interimTranscript}"`, 'info');
+                    }
+                };
+                
+                recognition.onerror = (event) => {
+                    let errorMsg = event.error;
+                    switch (event.error) {
+                        case 'not-allowed':
+                            errorMsg = 'Microphone permission denied. Please allow microphone access.';
+                            break;
+                        case 'no-speech':
+                            errorMsg = 'No speech detected. Please speak clearly.';
+                            break;
+                        case 'network':
+                            errorMsg = 'Network error. Please check your internet connection.';
+                            break;
+                        case 'service-not-allowed':
+                            errorMsg = 'Speech recognition service not available. Try refreshing.';
+                            break;
+                    }
+                    log(`❌ Error: ${errorMsg}`, 'error');
+                };
+                
+                recognition.onend = () => {
+                    log('🛑 Recognition stopped', 'info');
+                };
+            }
+            
+            try {
+                recognition.start();
+                log('Voice recognition started!', 'success');
+            } catch (error) {
+                log(`Failed to start: ${error.message}`, 'error');
+            }
+        }
+        
+        function stopListening() {
+            if (recognition) {
+                try {
+                    recognition.stop();
+                    log('Voice recognition stopped!', 'info');
+                } catch (error) {
+                    log(`Error stopping: ${error.message}`, 'error');
+                }
+            } else {
+                log('No recognition instance to stop', 'error');
+            }
+        }
+        
+        // Auto-check support on page load
+        window.addEventListener('load', checkSupport);
+    </script>
+</body>
+</html>

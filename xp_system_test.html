@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XP System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>XP System Test</h1>
+    
+    <div>
+        <h3>Test the Fixed XP System:</h3>
+        <button onclick="testProgressEndpoint()">Test /api/skills/progress</button>
+        <button onclick="testNotificationsEndpoint()">Test /api/skills/notifications</button>
+        <button onclick="openConversation()">Open Conversation Page</button>
+    </div>
+    
+    <div id="output"></div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            output.appendChild(div);
+            console.log(message);
+        }
+        
+        async function testProgressEndpoint() {
+            try {
+                const response = await fetch('http://localhost:3000/api/skills/progress', {
+                    headers: {
+                        'Authorization': 'Bearer ' + (localStorage.getItem('supabase_token') || 'test')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Progress endpoint working! Found ${data.length} skills`, 'success');
+                    data.forEach(skill => {
+                        log(`  - ${skill.skill_name}: ${skill.xp} XP (Level ${skill.level})`, 'info');
+                    });
+                } else {
+                    log(`❌ Progress endpoint failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Progress endpoint error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testNotificationsEndpoint() {
+            try {
+                const response = await fetch('http://localhost:3000/api/skills/notifications', {
+                    headers: {
+                        'Authorization': 'Bearer ' + (localStorage.getItem('supabase_token') || 'test')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Notifications endpoint working! Found ${data.length} notifications`, 'success');
+                    data.forEach(notif => {
+                        log(`  - +${notif.xp_amount} XP from ${notif.source} (${notif.skill_name || 'Unknown'})`, 'info');
+                    });
+                } else {
+                    log(`❌ Notifications endpoint failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Notifications endpoint error: ${error.message}`, 'error');
+            }
+        }
+        
+        function openConversation() {
+            window.open('http://localhost:5173/conversation', '_blank');
+        }
+        
+        window.addEventListener('load', () => {
+            log('XP System Test loaded. Click buttons to test endpoints:', 'info');
+            log('Fixed issues:', 'warning');
+            log('1. Added missing /api/skills/progress endpoint', 'warning');
+            log('2. Added missing /api/skills/notifications endpoint', 'warning');  
+            log('3. Removed conflicting XP logic from chat.js', 'warning');
+            log('4. Enhanced ExperienceListener to award XP for all conversations', 'warning');
+            log('5. Updated frontend to use new endpoints', 'warning');
+            log('6. Added star animation for engagement changes', 'warning');
+            log('Now testing: Create ANY conversation → should show +5 XP!', 'success');
+        });
+    </script>
+</body>
+</html>
