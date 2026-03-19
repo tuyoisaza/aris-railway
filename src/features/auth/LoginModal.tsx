@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chrome } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -15,9 +15,49 @@ const LoginModal = ({ isOpen, onLogin }) => {
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
-    const handleGoogleLogin = () => {
-        setError('Google login is not available. Please use email login.');
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('auth_token');
+        const userStr = params.get('auth_user');
+        const authError = params.get('auth_error');
+
+        if (token && userStr) {
+            try {
+                const user = JSON.parse(decodeURIComponent(userStr));
+                localStorage.setItem('aris_token', token);
+                localStorage.setItem('aris_user', JSON.stringify(user));
+                updateUser(user);
+                window.history.replaceState({}, '', window.location.pathname);
+                onLogin();
+            } catch (e) {
+                console.error('Failed to parse auth user:', e);
+            }
+        }
+
+        if (authError) {
+            setError(`Google login failed: ${authError}`);
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, []);
+
+    const handleGoogleLogin = async () => {
+        setGoogleLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/auth/google');
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                setError(data.error || 'Google login not configured');
+            }
+        } catch (err) {
+            setError('Failed to start Google login');
+        } finally {
+            setGoogleLoading(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -105,6 +145,7 @@ const LoginModal = ({ isOpen, onLogin }) => {
                         <button
                             onClick={handleGoogleLogin}
                             type="button"
+                            disabled={googleLoading}
                             style={{
                                 width: '100%',
                                 padding: '12px',
@@ -121,12 +162,17 @@ const LoginModal = ({ isOpen, onLogin }) => {
                                 marginBottom: '24px',
                                 transition: 'all 0.2s',
                                 color: 'var(--color-text)',
-                                opacity: 0.5
+                                opacity: googleLoading ? 0.7 : 1
                             }}
-                            disabled
                         >
-                            <Chrome size={20} />
-                            Google login coming soon
+                            {googleLoading ? (
+                                'Redirecting...'
+                            ) : (
+                                <>
+                                    <Chrome size={20} />
+                                    {t('auth.orContinueWith')} {t('auth.google')}
+                                </>
+                            )}
                         </button>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
