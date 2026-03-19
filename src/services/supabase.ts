@@ -68,56 +68,98 @@ class ApiClient {
 
 export const api = new ApiClient();
 
-export const auth = {
-    async login(email: string, password: string) {
-        return api.post('/auth/login', { email, password });
-    },
-    
-    async signup(email: string, password: string, name: string) {
-        return api.post('/auth/signup', { email, password, name });
-    },
-    
-    async getSession() {
+type AuthCallback = (event: string, session: { access_token?: string; user?: any } | null) => void;
+
+class AuthManager {
+    private listeners: Set<AuthCallback> = new Set();
+    private currentSession: { access_token?: string; user?: any } | null = null;
+
+    constructor() {
+        this.loadFromStorage();
+    }
+
+    private loadFromStorage() {
         const token = localStorage.getItem('aris_token');
         const userStr = localStorage.getItem('aris_user');
-        if (token && userStr) {
-            return {
-                data: {
-                    session: { access_token: token },
-                    user: JSON.parse(userStr)
-                }
+        if (token) {
+            this.currentSession = {
+                access_token: token,
+                user: userStr ? JSON.parse(userStr) : null
             };
         }
-        return { data: { session: null, user: null } };
-    },
-    
-    setSession(session: any, user: any) {
+    }
+
+    private notifyListeners(event: string, session: typeof this.currentSession) {
+        this.listeners.forEach(cb => cb(event, session));
+    }
+
+    async login(email: string, password: string): Promise<{ user: any; session: any }> {
+        const response = await api.post('/auth/login', { email, password });
+        this.setSession(response.session, response.user);
+        return response;
+    }
+
+    async signup(email: string, password: string, name?: string): Promise<{ user: any; session: any }> {
+        const response = await api.post('/auth/signup', { email, password, name });
+        this.setSession(response.session, response.user);
+        return response;
+    }
+
+    private setSession(session: any, user: any) {
         if (session?.access_token) {
             localStorage.setItem('aris_token', session.access_token);
         }
         if (user) {
             localStorage.setItem('aris_user', JSON.stringify(user));
         }
-    },
-    
-    clearSession() {
+        this.currentSession = {
+            access_token: session?.access_token,
+            user
+        };
+        this.notifyListeners('AUTH_STATE_CHANGED', this.currentSession);
+    }
+
+    async signOut() {
         localStorage.removeItem('aris_token');
         localStorage.removeItem('aris_user');
-    },
-    
-    onAuthStateChange(callback: (event: string, session: any) => void) {
-        const checkAuth = () => {
-            const token = localStorage.getItem('aris_token');
-            callback('INITIAL_SESSION', token ? { access_token: token } : null);
-        };
-        checkAuth();
-        window.addEventListener('storage', checkAuth);
-        return () => window.removeEventListener('storage', checkAuth);
+        this.currentSession = null;
+        this.notifyListeners('SIGNED_OUT', null);
     }
-};
+
+    async getSession(): Promise<{ data: { session: any; user: any } }> {
+        if (this.currentSession) {
+            return {
+                data: {
+                    session: this.currentSession,
+                    user: this.currentSession.user
+                }
+            };
+        }
+        return { data: { session: null, user: null } };
+    }
+
+    onAuthStateChange(callback: AuthCallback): { data: { unsubscribe: () => void } } {
+        this.listeners.add(callback);
+        callback('INITIAL_SESSION', this.currentSession);
+        return {
+            data: {
+                unsubscribe: () => this.listeners.delete(callback)
+            }
+        };
+    }
+}
+
+export const authManager = new AuthManager();
 
 export const supabase = {
-    auth: auth,
+    auth: {
+        login: (email: string, password: string) => authManager.login(email, password),
+        signup: (email: string, password: string, options?: { data: { name?: string } }) => 
+            authManager.signup(email, password, options?.data?.name),
+        signOut: () => authManager.signOut(),
+        getSession: () => authManager.getSession(),
+        onAuthStateChange: (callback: AuthCallback) => authManager.onAuthStateChange(callback)
+    },
     from: (table: string) => ({
         select: (columns = '*') => ({
             eq: (column: string, value: any) => ({
