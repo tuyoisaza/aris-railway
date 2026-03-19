@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Chrome } from 'lucide-react'; // Using Chrome icon as Google proxy
+import { Chrome } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import { useGlobal } from '../../context/GlobalContext';
-import { supabase } from '../../services/supabase';
 
 const LoginModal = ({ isOpen, onLogin }) => {
     const { t } = useTranslation();
@@ -17,18 +16,8 @@ const LoginModal = ({ isOpen, onLogin }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const handleGoogleLogin = async () => {
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin // Redirect back to wherever we are
-                }
-            });
-            if (error) throw error;
-        } catch (err) {
-            setError(t('auth.google') + ' ' + t('auth.login') + ' Failed: ' + err.message);
-        }
+    const handleGoogleLogin = () => {
+        setError('Google login is not available. Please use email login.');
     };
 
     const handleSubmit = async (e) => {
@@ -36,7 +25,6 @@ const LoginModal = ({ isOpen, onLogin }) => {
         setLoading(true);
         setError(null);
 
-        // Validation for Signup
         if (isSignup && password !== confirmPassword) {
             setError(t('auth.confirmPassword') + ' - Passwords do not match');
             setLoading(false);
@@ -48,16 +36,15 @@ const LoginModal = ({ isOpen, onLogin }) => {
             if (isSignup) {
                 data = await api.signup(email, password, name);
                 if (data.error) throw new Error(data.error);
-                alert(t('common.success') + '! Please check your email to confirm, then login.');
+                alert(t('common.success') + '! Account created. You can now login.');
                 setIsSignup(false);
             } else {
                 data = await api.login(email, password);
                 if (data.error) throw new Error(data.error);
 
-                // Success
                 if (data.user) {
                     updateUser({
-                        name: data.user.user_metadata?.name || 'User',
+                        name: data.user.name || 'User',
                         email: data.user.email,
                         id: data.user.id
                     });
@@ -133,12 +120,13 @@ const LoginModal = ({ isOpen, onLogin }) => {
                                 cursor: 'pointer',
                                 marginBottom: '24px',
                                 transition: 'all 0.2s',
-                                color: 'var(--color-text)'
+                                color: 'var(--color-text)',
+                                opacity: 0.5
                             }}
-                            className="hover:bg-gray-50"
+                            disabled
                         >
-                            <Chrome size={20} /> {/* Proxy for Google G logo */}
-                            {t('auth.orContinueWith')} {t('auth.google')}
+                            <Chrome size={20} />
+                            Google login coming soon
                         </button>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
@@ -217,38 +205,6 @@ const LoginModal = ({ isOpen, onLogin }) => {
                         >
                             {isSignup ? t('auth.haveAccount') : t('auth.noAccount')}
                         </button>
-
-                        {/* DEBUG SECTION */}
-                        {localStorage.getItem('aris_debug_token') && (
-                            <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #ccc' }}>
-                                <p style={{ fontSize: '10px', color: 'red', fontWeight: 'bold', marginBottom: '8px' }}>DEBUG MODE ACTIVE</p>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (confirm('Clear all local storage?')) {
-                                                localStorage.clear();
-                                                window.location.reload();
-                                            }
-                                        }}
-                                        style={{ fontSize: '11px', padding: '4px 8px', background: '#fee2e2', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer', color: '#b91c1c' }}
-                                    >
-                                        Clear Local Data
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            // Quick fill for dev (optional, hardcoded for now just as example)
-                                            setEmail('admin@aris.com');
-                                            setPassword('password');
-                                        }}
-                                        style={{ fontSize: '11px', padding: '4px 8px', background: '#e0f2fe', border: '1px solid #3b82f6', borderRadius: '4px', cursor: 'pointer', color: '#1d4ed8' }}
-                                    >
-                                        Quick Fill
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </motion.div>
                 </div>
             )}
