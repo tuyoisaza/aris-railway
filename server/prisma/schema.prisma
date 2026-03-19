@@ -45,6 +45,7 @@ model User {
   presenceUpdates    PresenceUpdate[]
   agoraStableState   AgoraStableState?
   agoraSessionContexts AgoraSessionContext[]
+  projectComments    ProjectComment[]
 
   @@map("users")
 }
@@ -259,6 +260,8 @@ model Message {
   createdAt     DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId   String?
 
   @@map("messages")
 }
