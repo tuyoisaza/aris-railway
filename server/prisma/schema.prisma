@@ -43,6 +43,8 @@ model User {
   postActionBuffer   AgoraPostActionBuffer[]
   memoryAudit        AgoraMemoryAudit[]
   presenceUpdates    PresenceUpdate[]
+  agoraStableState   AgoraStableState?
+  agoraSessionContexts AgoraSessionContext[]
 
   @@map("users")
 }
@@ -244,6 +246,7 @@ model Conversation {
   user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   topic   Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
   messages Message[]
+  postActionBuffers AgoraPostActionBuffer[]
 
   @@map("conversations")
 }
