@@ -1,17 +1,7 @@
 import { API_URL, clearTokenCache } from './base-client';
-import { supabase } from '../supabase';
 
 export const signup = async (email: string, password: string, name?: string) => {
   try {
-    // 1. Supabase Auth Signup
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name: name || 'User' } },
-    });
-
-    if (authError) throw authError;
-
     const res = await fetch(`${API_URL}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -19,10 +9,11 @@ export const signup = async (email: string, password: string, name?: string) => 
     });
     const data = await res.json();
 
-    if (data.session) {
-      // IMPORTANT: Tell Supabase Client we have a session
-      const { error: setSessionError } = await supabase.auth.setSession(data.session);
-      if (setSessionError) console.error('Error setting session:', setSessionError);
+    if (data.session?.access_token) {
+      localStorage.setItem('aris_token', data.session.access_token);
+    }
+    if (data.user) {
+      localStorage.setItem('aris_user', JSON.stringify(data.user));
     }
     return data;
   } catch (e: any) {
@@ -32,20 +23,20 @@ export const signup = async (email: string, password: string, name?: string) => 
 
 export const login = async (email: string, password: string) => {
   try {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-
     const res = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    const apiData = await res.json();
+    const data = await res.json();
 
-    if (apiData.session) {
-      await supabase.auth.setSession(apiData.session);
+    if (data.session?.access_token) {
+      localStorage.setItem('aris_token', data.session.access_token);
     }
-    return apiData;
+    if (data.user) {
+      localStorage.setItem('aris_user', JSON.stringify(data.user));
+    }
+    return data;
   } catch (e: any) {
     return { error: e.message };
   }
@@ -65,12 +56,12 @@ export const requestPasswordReset = async (email: string) => {
 };
 
 export const updatePassword = async (_newPassword: string) => {
-  return { error: 'Handle via Supabase Client directly' };
+  return { error: 'Password update coming soon' };
 };
 
 export const logout = async () => {
-  await supabase.auth.signOut();
-  localStorage.removeItem('access_token');
+  localStorage.removeItem('aris_token');
+  localStorage.removeItem('aris_user');
   clearTokenCache();
 };
 
@@ -83,7 +74,6 @@ export const initiateGoogleLogin = async () => {
     }
     return await res.json();
   } catch (e: any) {
-    console.error('Google Login Error:', e);
     return { error: e.message };
   }
 };

@@ -1,16 +1,9 @@
-import { supabase } from '../supabase';
+const API_URL = '/api';
 
-export const API_URL = '/api';
-
-// Safety check for supabase client existence
-const hasSupabase = !!supabase;
-
-// Session token caching to reduce redundant auth calls
 let cachedToken: string | null = null;
 let cacheTime = 0;
-const CACHE_TTL = 30000; // 30 seconds
+const CACHE_TTL = 30000;
 
-// Simple event handling for 401s
 let onUnauthorized: (() => void) | null = () => {
   console.warn('401 Unauthorized detected, but no callback registered.');
 };
@@ -23,23 +16,17 @@ export const getHeaders = async () => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const now = Date.now();
 
-  // Use cached token if still valid
   if (cachedToken && now - cacheTime < CACHE_TTL) {
     headers['Authorization'] = `Bearer ${cachedToken}`;
     return headers;
   }
 
-  // Fetch fresh session and cache it
-  if (!supabase) return headers;
-  const { data } = await supabase.auth.getSession();
-  const token = data?.session?.access_token;
-
+  const token = localStorage.getItem('aris_token');
   if (token) {
     cachedToken = token;
     cacheTime = now;
     headers['Authorization'] = `Bearer ${token}`;
   } else {
-    // Clear cache if no valid session
     cachedToken = null;
     cacheTime = 0;
   }

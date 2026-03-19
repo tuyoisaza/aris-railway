@@ -12,7 +12,6 @@ import * as agora from './api/agora';
 export const api = {
   setUnauthorizedCallback,
 
-  // Auth
   signup: auth.signup,
   login: auth.login,
   requestPasswordReset: auth.requestPasswordReset,
@@ -20,7 +19,6 @@ export const api = {
   logout: auth.logout,
   initiateGoogleLogin: auth.initiateGoogleLogin,
 
-  // Family
   createFamily: family.createFamily,
   getFamily: family.getFamily,
   getFamilyActivity: family.getFamilyActivity,
@@ -31,16 +29,13 @@ export const api = {
   getInvites: family.getInvites,
   acceptInvite: family.acceptInvite,
 
-  // User Persistence
   updatePreferences: user.updatePreferences,
   updateAvatar: user.updateAvatar,
   getUser: user.getUser,
   updateUser: user.updateUser,
 
-  // Resources
   getResources: topics.getResources,
 
-  // Projects
   getProjects: projects.getProjects,
   createProjectFromSkill: projects.createProjectFromSkill,
   createProject: projects.createProject,
@@ -54,7 +49,6 @@ export const api = {
   getProjectReflections: projects.getProjectReflections,
   addProjectReflection: projects.addProjectReflection,
 
-  // Topics
   getTopics: topics.getTopics,
   getTopicGraph: topics.getTopicGraph,
   getTopic: topics.getTopic,
@@ -69,7 +63,6 @@ export const api = {
   startSkillLevelConversation: topics.startSkillLevelConversation,
   generateSkillCurriculum: topics.generateSkillCurriculum,
 
-  // ResourcesChat
   getConversations: chat.getConversations,
   createConversation: chat.createConversation,
   deleteConversation: chat.deleteConversation,
@@ -83,10 +76,10 @@ export const api = {
   generateSummary: chat.generateSummary,
   createMessage: chat.createMessage,
 
-  // Stripe
   createCheckoutSession: billing.createCheckoutSession,
 
-  // Admin and Agora APIs
   admin,
   agora,
 };
+
+export default api;

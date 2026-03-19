@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { StorageService } from '../services/storage';
 import { AIService } from '../services/ai';
-import { api } from '../services/api';
-import { supabase } from '../services/supabase';
+import { api, auth } from '../services/supabase';
 import i18n from '../i18n';
 import { parseV2Message, parseHistoryMessage } from '../utils/messageParser';
 
@@ -146,24 +145,18 @@ export const GlobalProvider = ({ children }) => {
         // Register auto-logout on 401
         api.setUnauthorizedCallback(() => {
             console.warn("[Global] Session expired. Logging out.");
-            logout(); // Clears local state
-            supabase.auth.signOut(); // Ensure Supabase knows too
+            logout();
         });
 
-        // Supabase Auth Listener (The core of auto-refresh support)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        // Auth Listener
+        const { data } = auth.onAuthStateChange((event, session) => {
             console.log(`[Global] Auth Event: ${event}`, session?.user?.id);
 
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                // If we have a user but local state is empty/stale, refresh
-                if (session?.user?.id) {
-                    // Ensure local user object matches session or just trigger data refresh
+            if (event === 'SIGNED_IN') {
+                if (session?.user) {
                     if (!state.user || state.user.id !== session.user.id) {
-                        // Minimal sync, refreshData will pull full profile
-                        setState(prev => ({ ...prev, user: { ...prev.user, id: session.user.id, email: session.user.email } }));
-                        refreshData(); // Refresh if user changed/set
-                    } else if (event === 'TOKEN_REFRESHED') {
-                        refreshData(); // Refresh if token refreshed
+                        setState(prev => ({ ...prev, user: { ...prev.user, ...session.user } }));
+                        refreshData();
                     }
                 }
             } else if (event === 'SIGNED_OUT') {
@@ -171,12 +164,17 @@ export const GlobalProvider = ({ children }) => {
             }
         });
 
-        refreshData();
+        // Check existing session
+        const { data: sessionData } = auth.getSession();
+        if (sessionData.session && sessionData.user) {
+            setState(prev => ({ ...prev, user: sessionData.user }));
+            refreshData();
+        }
 
         return () => {
-            subscription.unsubscribe();
+            data.unsubscribe();
         };
-    }, [state.user?.id, refreshData]);
+    }, []);
 
 
     // --- ACTIONS ---

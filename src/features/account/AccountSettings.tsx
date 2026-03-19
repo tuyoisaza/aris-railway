@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, CreditCard, Download, Moon, Sun, Check, ArrowLeft, LogOut, Brain, Trash2 } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
 import { VoiceService } from '../../services/voice';
-import { api } from '../../services/api';
-import { supabase } from '../../services/supabase';
+import { api } from '../../services/supabase';
 import { useTranslation } from 'react-i18next';
 import ChatSidebar from '../conversation/ChatSidebar';
 
@@ -158,24 +157,8 @@ const AccountSettings = () => {
 
         setUploading(true);
         try {
-            // Use Supabase Storage
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-            const filePath = `avatars/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('assets')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage.from('assets').getPublicUrl(filePath);
-            const publicUrl = data.publicUrl;
-
-            // Update User
-            updateUser({ avatar_url: publicUrl });
-            await api.updateUser(user.id, { avatar_url: publicUrl });
-
+            // TODO: Implement file upload to backend
+            alert('Avatar upload coming soon!');
         } catch (error) {
             console.error('Error uploading avatar:', error);
             alert('Error uploading image');
