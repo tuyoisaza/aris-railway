@@ -5,13 +5,13 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { createServer } from "http";
 import { socketServer } from "./websocket/socketServer.js";
+import { connectDatabase, disconnectDatabase } from "./prisma/client.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load env from project root or server folder
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
-dotenv.config(); // Fallback to CWD .env
+dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -19,26 +19,29 @@ const server = createServer(app);
 
 let appReady = false;
 
-// ---- Health endpoint (Cloud Run) - responds immediately ----
 app.get("/health", (_req, res) => {
-    res.status(200).send("OK");
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// ---- Startup Diagnostics ----
 console.log("[Bootstrap] Environment Diagnostics:");
 const envKeys = [
-    "SUPABASE_URL",
-    "SUPABASE_SERVICE_KEY",
+    "DATABASE_URL",
+    "JWT_SECRET",
     "OPENAI_API_KEY",
     "STRIPE_SECRET_KEY",
-    "VITE_SUPABASE_URL",
-    "VITE_SUPABASE_KEY"
+    "VITE_STRIPE_PRICE_PLUS"
 ];
 envKeys.forEach(key => {
     const val = process.env[key];
     if (val) {
-        const masked = val.length > 8 ? `${val.substring(0, 4)}...${val.substring(val.length - 4)}` : "****";
-        console.log(`  - ${key}: [SET] ${masked}`);
+        if (key === "DATABASE_URL") {
+            console.log(`  - ${key}: [SET] file:***/aris.db`);
+        } else if (key.includes("KEY") || key.includes("SECRET")) {
+            const masked = val.length > 8 ? `${val.substring(0, 4)}...${val.substring(val.length - 4)}` : "****";
+            console.log(`  - ${key}: [SET] ${masked}`);
+        } else {
+            console.log(`  - ${key}: [SET]`);
+        }
     } else {
         console.log(`  - ${key}: [MISSING]`);
     }
@@ -46,12 +49,10 @@ envKeys.forEach(key => {
 console.log(`  - NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`  - PORT: ${process.env.PORT}`);
 
-// ---- Defer all other requests until app is ready ----
 app.use((req, res, next) => {
     if (appReady) {
         next();
     } else {
-        // App still loading, wait and retry
         const checkReady = setInterval(() => {
             if (appReady) {
                 clearInterval(checkReady);
@@ -59,7 +60,6 @@ app.use((req, res, next) => {
             }
         }, 100);
 
-        // Timeout after 30 seconds
         setTimeout(() => {
             clearInterval(checkReady);
             if (!appReady) {
@@ -69,27 +69,24 @@ app.use((req, res, next) => {
     }
 });
 
-// ---- Start listening IMMEDIATELY (Cloud Run requirement) ----
 server.listen(PORT, "0.0.0.0", async () => {
     console.log(`[Bootstrap] ARIS server listening on port ${PORT}`);
     
-    // Initialize WebSocket server after HTTP server is ready
     socketServer.initialize(server);
     console.log("[Bootstrap] WebSocket server initialized");
 
-    // ---- Load full app AFTER listen ----
     try {
+        await connectDatabase();
+        console.log("[Bootstrap] Database connected");
+        
         const { default: fullApp } = await import("./scripts/maintenance/index.js");
-
-        // Mount the full app (API routes, static files, SPA fallback)
         app.use(fullApp);
-
+        
         appReady = true;
         console.log("[Bootstrap] Full application loaded successfully");
     } catch (err) {
         console.error("[Bootstrap] Failed to load full application:", err);
 
-        // Fallback: serve static files directly
         const publicPath = path.join(__dirname, "public");
 
         if (fs.existsSync(path.join(publicPath, "index.html"))) {
@@ -106,4 +103,16 @@ server.listen(PORT, "0.0.0.0", async () => {
 
         appReady = true;
     }
+});
+
+process.on('SIGINT', async () => {
+    console.log('[Bootstrap] Shutting down...');
+    await disconnectDatabase();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('[Bootstrap] Shutting down...');
+    await disconnectDatabase();
+    process.exit(0);
 });

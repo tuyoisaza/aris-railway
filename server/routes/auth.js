@@ -1,8 +1,9 @@
 import express from 'express';
-import { supabaseAdmin } from '../db.js';
+import { prisma } from '../db.js';
 import { log } from '../utils/logger.js';
 import { authLimiter, validate } from '../middleware.js';
 import { schemas } from '../schemas.js';
+import { hashPassword, verifyPassword, generateToken } from '../prisma/auth.js';
 
 const router = express.Router();
 
@@ -11,66 +12,69 @@ const ALLOWED_ORIGINS = isProduction
     ? ['https://aris.app', 'https://www.aris.app']
     : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:3000'];
 
-// POST /api/auth/reset-request
 router.post('/reset-request', authLimiter, async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    try {
-        const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-            redirectTo: isProduction
-                ? 'https://aris.app/update-password'
-                : 'http://localhost:5173/update-password',
-        });
-
-        if (error) throw error;
-
-        res.json({ success: true, message: 'Password reset link sent.' });
-    } catch (err) {
-        log('Auth', 'ERROR', 'Reset', err.message);
-        // Do not leak existence of email
-        res.json({ success: true, message: 'If this email exists, a link was sent.' });
-    }
+    log('Auth', 'INFO', 'ResetRequest', `Password reset requested for: ${email}`);
+    res.json({ success: true, message: 'Password reset functionality coming soon.' });
 });
 
-// POST /api/auth/signup
-router.post('/signup', authLimiter, validate(schemas.signup), async (req, res) => {
+router.post('/signup', authLimiter, async (req, res) => {
     const { email, password, name } = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
     log('Auth', 'INFO', 'Signup', `Attempt for: ${email}`);
 
     try {
-        // 1. Create Auth User
-        const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
-            email,
-            password,
-            options: { data: { name: name || 'User' } }
+        const existingUser = await prisma.user.findUnique({
+            where: { email }
         });
 
-        if (authError) {
-            log('Auth', 'ERROR', 'Signup', `Supabase signUp error: ${authError.message}`);
-            throw authError;
+        if (existingUser) {
+            log('Auth', 'WARN', 'Signup', `Email already exists: ${email}`);
+            return res.status(400).json({ error: 'Email already registered' });
         }
 
-        log('Auth', 'INFO', 'Signup', `Success for user: ${authData.user?.id}`);
-
-        if (authData.user) {
-            // 2. Create Public User Record
-            const { error: profileError } = await supabaseAdmin
-                .from('users')
-                .insert([{
-                    id: authData.user.id,
-                    email: authData.user.email,
-                    name: name || 'New User',
-                    plan: 'free',
-                    is_super_admin: false
-                }]);
-
-            if (profileError) {
-                log('Auth', 'WARN', 'Signup', `Profile creation failed: ${profileError.message}`);
+        const hashedPassword = await hashPassword(password);
+        
+        const user = await prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                name: name || 'New User',
+                plan: 'free',
+                role: 'user'
             }
-        }
+        });
 
-        res.json({ user: authData.user, session: authData.session });
+        log('Auth', 'INFO', 'Signup', `Success for user: ${user.id}`);
+
+        const token = generateToken({
+            userId: user.id,
+            email: user.email
+        });
+
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                plan: user.plan
+            },
+            session: {
+                access_token: token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name
+                }
+            }
+        });
 
     } catch (err) {
         log('Auth', 'ERROR', 'Signup', err.message);
@@ -78,56 +82,72 @@ router.post('/signup', authLimiter, validate(schemas.signup), async (req, res) =
     }
 });
 
-// POST /api/auth/login
-router.post('/login', authLimiter, validate(schemas.login), async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
     const { email, password } = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
     log('Auth', 'INFO', 'Login', `Attempt for: ${email}`);
 
     try {
-        const { data, error } = await supabaseAdmin.auth.signInWithPassword({
-            email,
-            password
+        const user = await prisma.user.findUnique({
+            where: { email }
         });
 
-        if (error) throw error;
+        if (!user || !user.password) {
+            log('Auth', 'WARN', 'Login', `User not found: ${email}`);
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
 
-        log('Auth', 'INFO', 'Login', `Success for user: ${data.user.id}`);
+        const validPassword = await verifyPassword(password, user.password);
+        
+        if (!validPassword) {
+            log('Auth', 'WARN', 'Login', `Invalid password for: ${email}`);
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
 
-        // Fetch public user details
-        const { data: userProfile } = await supabaseAdmin
-            .from('users')
-            .select('*, is_super_admin')
-            .eq('id', data.user.id)
-            .single();
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastSeen: new Date() }
+        });
+
+        log('Auth', 'INFO', 'Login', `Success for user: ${user.id}`);
+
+        const token = generateToken({
+            userId: user.id,
+            email: user.email
+        });
 
         res.json({
-            user: { ...data.user, ...userProfile },
-            session: data.session
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                plan: user.plan,
+                avatar: user.avatar
+            },
+            session: {
+                access_token: token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name
+                }
+            }
         });
 
     } catch (err) {
         log('Auth', 'ERROR', 'Login', err.message);
-        res.status(401).json({ error: err.message });
+        res.status(500).json({ error: 'Login failed' });
     }
 });
 
-// GET /api/auth/google
 router.get('/google', async (req, res) => {
-    try {
-        const redirectUrl = req.headers.origin || ALLOWED_ORIGINS[0];
-        log('Auth', 'INFO', 'OAuth', `Google OAuth redirect URL: ${redirectUrl}`);
-
-        const { data, error } = await supabaseAdmin.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: redirectUrl }
-        });
-
-        if (error) throw error;
-        res.json({ url: data.url });
-    } catch (err) {
-        log('Auth', 'ERROR', 'OAuth', err.message);
-        res.status(500).json({ error: err.message });
-    }
+    log('Auth', 'WARN', 'OAuth', 'Google OAuth not configured - using local auth');
+    res.status(501).json({ error: 'Google OAuth not configured' });
 });
 
 export default router;
