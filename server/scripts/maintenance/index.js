@@ -104,10 +104,10 @@ app.get(`${API_BASE}/health`, (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../../public')));
 
 app.get('*', (req, res) => {
-    const indexPath = path.join(__dirname, '../public/index.html');
+    const indexPath = path.join(__dirname, '../../public/index.html');
     res.sendFile(indexPath);
 });
 
