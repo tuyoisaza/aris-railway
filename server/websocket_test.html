@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket & XP Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .message { background-color: #e2e3e5; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .xp-notification { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .presence-info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 5px; margin: 5px; }
+        .test-section { border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>ARIS WebSocket & XP Integration Test</h1>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <div class="test-section">
+        <h3>Connection Test</h3>
+        <input type="text" id="token" placeholder="JWT Token (optional for testing)" style="width: 300px;">
+        <button onclick="connect()">Connect WebSocket</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Presence Test</h3>
+        <input type="text" id="familyId" placeholder="Family ID" value="test-family-123">
+        <button onclick="updatePresence('online')">Set Online</button>
+        <button onclick="updatePresence('away')">Set Away</button>
+        <button onclick="updatePresence('busy')">Set Busy</button>
+        <br>
+        <input type="text" id="activity" placeholder="Activity (e.g., 'studying biology')">
+        <button onclick="setActivity()">Set Activity</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>XP System Test</h3>
+        <button onclick="simulateXPGain()">Simulate XP Gain</button>
+        <button onclick="simulateSkillProgress()">Simulate Skill Progress</button>
+        <button onclick="simulateTyping()">Simulate Typing Indicator</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Messages</h3>
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectInterval = null;
+        
+        function addMessage(message, type = 'message') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${JSON.stringify(message, null, 2)}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            if (connected) {
+                statusDiv.textContent = 'Connected';
+                statusDiv.className = 'status connected';
+            } else {
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'status disconnected';
+            }
+        }
+        
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addMessage('Already connected');
+                return;
+            }
+            
+            const token = document.getElementById('token').value;
+            const wsUrl = token 
+                ? `ws://localhost:3001/ws?token=${token}`
+                : 'ws://localhost:3001/ws';
+            
+            addMessage(`Connecting to: ${wsUrl}`);
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function(event) {
+                addMessage('WebSocket connection opened');
+                updateStatus(true);
+                
+                // Clear any reconnect interval
+                if (reconnectInterval) {
+                    clearInterval(reconnectInterval);
+                    reconnectInterval = null;
+                }
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage(data, data.type === 'xp_notification' ? 'xp-notification' : 
+                             data.type.includes('user_status') ? 'presence-info' : 'message');
+                } catch (error) {
+                    addMessage(`Error parsing message: ${event.data}`);
+                }
+            };
+            
+            ws.onclose = function(event) {
+                addMessage(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
+                updateStatus(false);
+                
+                // Auto-reconnect after 3 seconds
+                if (!reconnectInterval) {
+                    reconnectInterval = setInterval(() => {
+                        addMessage('Attempting to reconnect...');
+                        connect();
+                    }, 3000);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                addMessage(`WebSocket error: ${error}`);
+                updateStatus(false);
+            };
+        }
+        
+        function disconnect() {
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
+            
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            updateStatus(false);
+        }
+        
+        function sendMessage(message) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(message));
+                addMessage(`Sent: ${JSON.stringify(message)}`);
+            } else {
+                addMessage('Not connected - cannot send message');
+            }
+        }
+        
+        function updatePresence(status) {
+            sendMessage({
+                type: 'presence_update',
+                data: {
+                    status: status
+                }
+            });
+        }
+        
+        function setActivity() {
+            const activity = document.getElementById('activity').value;
+            if (!activity) {
+                addMessage('Please enter an activity');
+                return;
+            }
+            
+            sendMessage({
+                type: 'presence_update',
+                data: {
+                    status: 'online',
+                    activity: activity,
+                    entityType: 'topic',
+                    entityId: 'test-topic-123'
+                }
+            });
+        }
+        
+        function simulateXPGain() {
+            // This would normally be triggered by the ExperienceListener
+            // For testing, we'll simulate what the server would send
+            addMessage('Simulating XP gain notification from server...');
+            
+            // In a real scenario, this would come from the server via ExperienceListener
+            // We can't directly trigger it from client, but we can test the message format
+            const xpNotification = {
+                type: 'xp_notification',
+                data: {
+                    userId: 'test-user-123',
+                    xpAmount: 10,
+                    skillId: 'test-skill-123',
+                    level: 2,
+                    source: 'conversation',
+                    timestamp: Date.now()
+                }
+            };
+            
+            addMessage(xpNotification, 'xp-notification');
+        }
+        
+        function simulateSkillProgress() {
+            addMessage('Simulating skill progress notification...');
+            
+            const skillProgress = {
+                type: 'skill_progress',
+                data: {
+                    userId: 'test-user-123',
+                    skillId: 'test-skill-123',
+                    progress: 75,
+                    level: 2,
+                    timestamp: Date.now()
+                }
+            };
+            
+            addMessage(skillProgress, 'presence-info');
+        }
+        
+        function simulateTyping() {
+            const familyId = document.getElementById('familyId').value;
+            if (!familyId) {
+                addMessage('Please enter a family ID');
+                return;
+            }
+            
+            sendMessage({
+                type: 'typing_indicator',
+                data: {
+                    isTyping: true,
+                    activity: 'chatting',
+                    targetUserId: null // Broadcast to family
+                }
+            });
+            
+            // Stop typing after 2 seconds
+            setTimeout(() => {
+                sendMessage({
+                    type: 'typing_indicator',
+                    data: {
+                        isTyping: false,
+                        activity: 'chatting',
+                        targetUserId: null
+                    }
+                });
+            }, 2000);
+        }
+        
+        // Handle pong responses
+        function handlePong() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'pong' }));
+            }
+        }
+        
+        // Auto-connect on page load
+        window.onload = function() {
+            addMessage('Page loaded. Click "Connect WebSocket" to begin testing.');
+        };
+    </script>
+</body>
+</html>

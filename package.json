@@ -1,0 +1,49 @@
+{
+    "name": "aris",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "lint": "eslint .",
+        "preview": "vite preview",
+        "db:seed": "node server/scripts/seed_full_test.js",
+        "db:reset": "node server/scripts/start_fresh.js",
+        "cap:sync": "npx cap sync",
+        "cap:open": "npx cap open android",
+        "build-full": "run-build.bat",
+        "build-prod": "build-prod.bat",
+        "dev-linux": "run_dev.sh"
+    },
+    "dependencies": {
+        "@capacitor/android": "^8.0.0",
+        "@capacitor/cli": "^8.0.0",
+        "@capacitor/core": "^8.0.0",
+        "@supabase/supabase-js": "^2.89.0",
+        "d3": "^7.9.0",
+        "framer-motion": "^12.23.26",
+        "i18next": "^25.7.3",
+        "i18next-browser-languagedetector": "^8.2.0",
+        "lucide-react": "^0.562.0",
+        "openai": "^6.15.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "react-i18next": "^16.5.0",
+        "react-markdown": "^10.1.0",
+        "react-router-dom": "^7.11.0",
+        "remark-gfm": "^4.0.1"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.1",
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.1.1",
+        "eslint": "^9.39.1",
+        "eslint-plugin-react-hooks": "^7.0.1",
+        "eslint-plugin-react-refresh": "^0.4.24",
+        "globals": "^16.5.0",
+        "typescript": "^5.9.3",
+        "vite": "^7.2.4"
+    }
+}

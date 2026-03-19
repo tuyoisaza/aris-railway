@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARIS Collaboration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .presence-list {
+            list-style: none;
+            padding: 0;
+        }
+        .presence-list li {
+            padding: 8px;
+            margin: 4px 0;
+            background: #e9ecef;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .xp-notification {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .collab-notification {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 ARIS Collaboration System Test</h1>
+    
+    <div class="container">
+        <h2>Connection Status</h2>
+        <div id="connection-status" class="status disconnected">
+            Disconnected
+        </div>
+        <button onclick="connect()">Connect WebSocket</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="container">
+        <h2>Family Presence</h2>
+        <ul id="presence-list" class="presence-list">
+            <li>No family members online</li>
+        </ul>
+        <div style="margin-top: 10px;">
+            <input type="text" id="test-message" placeholder="Type a message to test typing indicator">
+            <button onclick="sendTyping(true)">Start Typing</button>
+            <button onclick="sendTyping(false)">Stop Typing</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Real-time Notifications</h2>
+        <div id="notifications"></div>
+        <button onclick="testXPNotification()">Test XP Notification</button>
+        <button onclick="testCollaboration()">Test Collaboration Action</button>
+    </div>
+
+    <div class="container">
+        <h2>Collaboration Session Test</h2>
+        <input type="text" id="session-name" placeholder="Session name" value="Test Study Session">
+        <textarea id="session-desc" placeholder="Session description">Let's study math together!</textarea>
+        <input type="number" id="goal-target" placeholder="Goal target" value="30">
+        <select id="goal-type">
+            <option value="time_target">Study Time (minutes)</option>
+            <option value="xp_target">XP Target</option>
+            <option value="completion_target">Complete Tasks</option>
+        </select>
+        <button onclick="createSession()">Create Session</button>
+        <button onclick="testShareTopic()">Share Topic</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectInterval = null;
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                return;
+            }
+
+            // For testing, we'll use a mock token - in real app this comes from Supabase auth
+            const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxOTc1NjM4MDAxLCJpYXQiOjE3Mzc4NzgwMDEsImlzcyI6Imh0dHBzOi8vZWp6anB5cW1yZm1qaWdwY3Yuc3VwYWJhc2UuY28vYXV0aC92MSIsInN1YiI6IjJiOGZlYjJkLWIzZDktNDg0YS1iOWZhLWQyN2JkMzJmMzYxMSIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoic3VwYWJhc2UiLCJwcm92aWRlcnMiOlsiZW1haWwiXX19.test';
+            
+            const wsUrl = `ws://localhost:3001/ws?token=${testToken}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function(event) {
+                console.log('WebSocket connected:', event);
+                updateConnectionStatus('Connected', true);
+                
+                if (reconnectInterval) {
+                    clearInterval(reconnectInterval);
+                    reconnectInterval = null;
+                }
+            };
+            
+            ws.onmessage = function(event) {
+                console.log('WebSocket message:', event.data);
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            ws.onclose = function(event) {
+                console.log('WebSocket disconnected:', event);
+                updateConnectionStatus('Disconnected', false);
+                
+                // Attempt to reconnect every 5 seconds
+                if (!reconnectInterval) {
+                    reconnectInterval = setInterval(connect, 5000);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                updateConnectionStatus('Error', false);
+            };
+        }
+
+        function disconnect() {
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
+            
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            
+            updateConnectionStatus('Disconnected', false);
+        }
+
+        function updateConnectionStatus(text, isConnected) {
+            const statusEl = document.getElementById('connection-status');
+            statusEl.textContent = text;
+            statusEl.className = `status ${isConnected ? 'connected' : 'disconnected'}`;
+        }
+
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'connection_established':
+                    updatePresence(data.data.familyPresence || {});
+                    addNotification('Connected to collaboration system', 'collab-notification');
+                    break;
+                    
+                case 'presence_update':
+                case 'user_status_change':
+                    updatePresenceFromMessage(data);
+                    break;
+                    
+                case 'xp_notification':
+                    addXPNotification(data.data);
+                    break;
+                    
+                case 'collaborative_action':
+                    addCollabNotification(data.data);
+                    break;
+                    
+                case 'typing_indicator':
+                    handleTypingIndicator(data);
+                    break;
+                    
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+
+        function updatePresence(presence) {
+            const listEl = document.getElementById('presence-list');
+            listEl.innerHTML = '';
+            
+            if (Object.keys(presence).length === 0) {
+                listEl.innerHTML = '<li>No family members online</li>';
+                return;
+            }
+            
+            Object.entries(presence).forEach(([userId, userData]) => {
+                const li = document.createElement('li');
+                const status = userData.status || 'offline';
+                const statusColor = status === 'online' ? '#28a745' : 
+                                  status === 'away' ? '#ffc107' : '#6c757d';
+                
+                li.innerHTML = `
+                    <span>👤 User ${userId.substring(0, 8)}...</span>
+                    <span style="color: ${statusColor}; font-weight: bold;">
+                        ${status.toUpperCase()}
+                    </span>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function updatePresenceFromMessage(data) {
+            if (data.data && data.data.userId && data.data.presence) {
+                // This is simplified - in real implementation, you'd update the presence object
+                addNotification(`${data.data.userId.substring(0, 8)}... is now ${data.data.presence.status}`, 'collab-notification');
+            }
+        }
+
+        function addNotification(message, className = '') {
+            const notificationsEl = document.getElementById('notifications');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${className}`;
+            messageEl.innerHTML = `
+                <small>${new Date().toLocaleTimeString()}</small><br>
+                ${message}
+            `;
+            notificationsEl.appendChild(messageEl);
+            
+            // Keep only last 10 notifications
+            while (notificationsEl.children.length > 10) {
+                notificationsEl.removeChild(notificationsEl.firstChild);
+            }
+        }
+
+        function addXPNotification(data) {
+            addNotification(`🌟 +${data.xpAmount} XP earned in ${data.reason}!`, 'xp-notification');
+        }
+
+        function addCollabNotification(data) {
+            addNotification(`🤝 Collaboration: ${data.action}`, 'collab-notification');
+        }
+
+        function handleTypingIndicator(data) {
+            if (data.data && data.data.isTyping) {
+                addNotification(`⌨️ ${data.data.userId.substring(0, 8)}... is typing...`, 'collab-notification');
+            }
+        }
+
+        function sendTyping(isTyping) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'typing_indicator',
+                    data: {
+                        isTyping: isTyping,
+                        context: { topicId: 'test-topic-123' }
+                    }
+                }));
+            }
+        }
+
+        function testXPNotification() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'test_xp',
+                    data: {
+                        userId: 'test-user-123',
+                        xpAmount: 25,
+                        reason: 'Math Problem Solving',
+                        timestamp: new Date().toISOString()
+                    }
+                }));
+                addNotification('🧪 Test: XP notification sent', 'xp-notification');
+            }
+        }
+
+        function testCollaboration() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'collaborative_action',
+                    data: {
+                        action: 'test_action',
+                        userId: 'test-user-123',
+                        data: { message: 'This is a test collaboration action' }
+                    }
+                }));
+                addNotification('🧪 Test: Collaboration action sent', 'collab-notification');
+            }
+        }
+
+        function createSession() {
+            const name = document.getElementById('session-name').value;
+            const desc = document.getElementById('session-desc').value;
+            const target = document.getElementById('goal-target').value;
+            const type = document.getElementById('goal-type').value;
+            
+            addNotification('🧪 Simulating session creation...', 'collab-notification');
+            addNotification(`📚 Session: ${name}`, 'collab-notification');
+            addNotification(`📝 Description: ${desc}`, 'collab-notification');
+            addNotification(`🎯 Goal: ${target} ${type.replace('_', ' ')}`, 'collab-notification');
+        }
+
+        function testShareTopic() {
+            addNotification('🧪 Simulating topic sharing...', 'collab-notification');
+            addNotification(`🔗 Topic "Introduction to Algebra" shared with family`, 'collab-notification');
+        }
+
+        // Auto-connect when page loads
+        window.onload = function() {
+            setTimeout(connect, 1000);
+        };
+    </script>
+</body>
+</html>

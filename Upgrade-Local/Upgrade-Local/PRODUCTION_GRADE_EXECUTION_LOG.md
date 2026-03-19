@@ -1,0 +1,1 @@
+2026-01-19 21:35:00 - Documentation Update: Significantly expanded FEATURES.md to cover Learning Experience (Pensum, Player), Public Pages (Pricing, Landing), and Advanced Admin Tools (Agents, Mentors) based on user feedback.
