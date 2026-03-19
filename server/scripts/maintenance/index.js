@@ -2,153 +2,120 @@ import 'dotenv/config';
 
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import compression from 'compression';
-import { log } from '../../utils/logger.js';
-import { apiLimiter, errorHandler } from './middleware.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ============================================================
-// CONFIGURATION
-// ============================================================
 const isProduction = process.env.NODE_ENV === 'production';
 
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : (
-    isProduction
-      ? ['https://aris.app', 'https://www.aris.app']
-      : ['http://localhost:3000']
-  );
+const ALLOWED_ORIGINS = isProduction
+    ? ['https://aris.app', 'https://www.aris.app', '.railway.app']
+    : ['http://localhost:3000', 'http://localhost:5173'];
 
-log('API', 'INFO', 'Config', `Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
-
-// ============================================================
-// MIDDLEWARE
-// ============================================================
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 
-// Request logging
 app.use((req, _res, next) => {
-  log('API', 'INFO', 'Request', `${req.method} ${req.url}`);
-  next();
+    console.log(`[API] ${req.method} ${req.url}`);
+    next();
 });
 
-// CORS
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin) || !isProduction) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
+    origin: (origin, callback) => {
+        if (!origin || ALLOWED_ORIGINS.some(o => origin.includes(o))) {
+            callback(null, true);
+        } else if (!isProduction) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
 }));
 
-app.options('*', cors());
-
-// Rate limiting
-app.use('/api/', apiLimiter);
-
-// Body parsing
-app.use('/api/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
-// ============================================================
-// ROUTES
-// ============================================================
-import adminRoutes from '../../routes/admin.js';
-import authRoutes from '../../routes/auth.js';
-import usersRoutes from '../../routes/users.js';
-import familiesRoutes from '../../routes/families.js';
-import settingsRoutes from '../../routes/settings.js';
-import invitesRoutes from '../../routes/invites.js';
-import chatRoutes from '../../routes/chat.js';
-import foldersRoutes from '../../routes/folders.js';
-import projectsRoutes from '../../routes/projects.js';
-import resourcesRoutes from '../../routes/resources.js';
-import topicsRoutes from '../../routes/topics.js';
-import skillsRoutes from '../../routes/skills.js';
-import billingRoutes from '../../routes/billing.js';
-import agoraRoutes from '../../routes/agora.js';
-import collaborationRoutes from '../../routes/collaboration.js';
+const API_BASE = '/api';
 
-// API ROUTES
-app.use('/api/admin', adminRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/user', usersRoutes);
-app.use('/api/family', familiesRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api', invitesRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/folders', foldersRoutes);
-app.use('/api/projects', projectsRoutes);
-app.use('/api/resources', resourcesRoutes);
-app.use('/api/topics', topicsRoutes);
-app.use('/api/skills', skillsRoutes);
-app.use('/api', billingRoutes);
-app.use('/api/agora', agoraRoutes);
-app.use('/api/collaboration', collaborationRoutes);
-
-// ============================================================
-// HEALTH CHECKS (important for Cloud Run)
-// ============================================================
-app.get('/health', (_req, res) => res.status(200).send('OK'));
-app.get('/api/health', (_req, res) =>
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
-);
-
-// ============================================================
-// STATIC FILES & SPA FALLBACK
-// ============================================================
-// Docker structure: /app/server/scripts/maintenance/index.js
-// Frontend at: /app/server/public (../../public from here)
-import fs from 'fs';
-
-const staticPath = path.join(__dirname, '../../public');
-
-// Verify frontend files exist
-if (fs.existsSync(path.join(staticPath, 'index.html'))) {
-  log('API', 'INFO', 'Static', `Serving frontend from: ${staticPath}`);
-} else {
-  log('API', 'WARN', 'Static', `Frontend not found at: ${staticPath}`);
-}
-
-// Mount static files but don't interfere with API routes
-app.use('/assets', express.static(staticPath + '/assets'));
-// SPA fallback - only for non-API routes
-app.get('*', (req, res) => {
-  // Don't interfere with API routes
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
-  }
-  
-  const indexPath = path.join(staticPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend not found. Check deployment.');
-  }
+app.post(`${API_BASE}/auth/login`, async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const { prisma } = await import('./prisma/client.js');
+        const { verifyPassword, generateToken } = await import('./prisma/auth.js');
+        
+        const user = await prisma.user.findUnique({ where: { email } });
+        
+        if (!user || !user.password) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        const valid = await verifyPassword(password, user.password);
+        if (!valid) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        const token = generateToken({ userId: user.id, email: user.email });
+        
+        res.json({
+            user: { id: user.id, email: user.email, name: user.name, role: user.role },
+            session: { access_token: token }
+        });
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({ error: 'Login failed' });
+    }
 });
 
-// Static files - Mount AFTER fallback to avoid interfering with API routes
-app.use(express.static(staticPath));
+app.post(`${API_BASE}/auth/signup`, async (req, res) => {
+    const { email, password, name } = req.body;
+    try {
+        const { prisma } = await import('./prisma/client.js');
+        const { hashPassword, generateToken } = await import('./prisma/auth.js');
+        
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+        
+        const hashed = await hashPassword(password);
+        const user = await prisma.user.create({
+            data: { email, password: hashed, name: name || 'New User' }
+        });
+        
+        const token = generateToken({ userId: user.id, email: user.email });
+        
+        res.json({
+            user: { id: user.id, email: user.email, name: user.name },
+            session: { access_token: token }
+        });
+    } catch (err) {
+        console.error('Signup error:', err);
+        res.status(500).json({ error: 'Signup failed' });
+    }
+});
 
-// ============================================================
-// ERROR HANDLING
-// ============================================================
+app.get(`${API_BASE}/health`, (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.use(express.static(path.join(__dirname, '../public')));
+
+app.get('*', (req, res) => {
+    const indexPath = path.join(__dirname, '../public/index.html');
+    res.sendFile(indexPath);
+});
+
+const errorHandler = (err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+};
+
 app.use(errorHandler);
 
-// ============================================================
-// EXPORT ONLY — DO NOT START SERVER HERE
-// ============================================================
 export default app;
