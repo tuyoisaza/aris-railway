@@ -317,7 +317,6 @@ model CollaborativeSession {
   maxParticipants  Int      @default(10)
   isActive         Boolean  @default(true)
   settings         String   @default("{}")
-  participants     String   @default("[]")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
