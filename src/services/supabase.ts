@@ -144,4 +144,82 @@ export const auth = {
     }
 };
 
-export default { auth, api };
+// Legacy supabase export for backward compatibility
+// Use api or auth instead for new code
+export const supabase = {
+    auth: {
+        getSession: () => {
+            console.warn('Using legacy supabase.auth.getSession - use auth.getSession instead');
+            return api.getSession();
+        },
+        signInWithPassword: async (credentials: { email: string; password: string }) => {
+            console.warn('Using legacy supabase.auth.signInWithPassword - use auth.login instead');
+            const result = await api.login(credentials.email, credentials.password);
+            return { data: result, error: result.error ? { message: result.error } : null };
+        },
+        signUp: async (credentials: { email: string; password: string; options?: { data?: { name?: string } } }) => {
+            console.warn('Using legacy supabase.auth.signUp - use auth.signup instead');
+            const result = await api.signup(credentials.email, credentials.password, credentials.options?.data?.name);
+            return { data: result, error: result.error ? { message: result.error } : null };
+        },
+        signOut: () => {
+            console.warn('Using legacy supabase.auth.signOut - use auth.signOut instead');
+            return api.signOut();
+        },
+        onAuthStateChange: (callback: (event: string, session: any) => void) => {
+            console.warn('Using legacy supabase.auth.onAuthStateChange - use auth.onAuthStateChange instead');
+            return auth.onAuthStateChange(callback);
+        }
+    },
+    from: (table: string) => ({
+        select: (columns = '*') => ({
+            eq: (column: string, value: any) => ({
+                single: async () => {
+                    console.warn(`Using legacy supabase.from('${table}').select().eq() - implement API call instead`);
+                    return { data: null, error: { message: 'Not implemented without Supabase' } };
+                },
+                then: async (cb: (result: { data: any; error: any }) => void) => {
+                    console.warn(`Using legacy supabase.from('${table}').select().eq() - implement API call instead`);
+                    cb({ data: [], error: null });
+                },
+            }),
+            then: async (cb: (result: { data: any; error: any }) => void) => {
+                console.warn(`Using legacy supabase.from('${table}').select() - implement API call instead`);
+                cb({ data: [], error: null });
+            },
+        }),
+        insert: (data: any) => ({
+            then: async (cb: (result: { data: any; error: any }) => void) => {
+                console.warn(`Using legacy supabase.from('${table}').insert() - implement API call instead`);
+                cb({ data: null, error: null });
+            },
+        }),
+        update: (data: any) => ({
+            eq: (column: string, value: any) => ({
+                then: async (cb: (result: { data: any; error: any }) => void) => {
+                    console.warn(`Using legacy supabase.from('${table}').update().eq() - implement API call instead`);
+                    cb({ data: null, error: null });
+                },
+            }),
+        }),
+        delete: () => ({
+            eq: (column: string, value: any) => ({
+                then: async (cb: (result: { data: any; error: any }) => void) => {
+                    console.warn(`Using legacy supabase.from('${table}').delete().eq() - implement API call instead`);
+                    cb({ data: null, error: null });
+                },
+            }),
+        }),
+    }),
+    storage: {
+        from: (bucket: string) => ({
+            upload: (path: string, file: File) => {
+                console.warn(`Using legacy supabase.storage - implement API call instead`);
+                return Promise.resolve({ data: null, error: { message: 'Storage not implemented' } });
+            },
+            getPublicUrl: (path: string) => ({ data: { publicUrl: `/storage/${bucket}/${path}` } }),
+        }),
+    },
+};
+
+export default { auth, api, supabase };
