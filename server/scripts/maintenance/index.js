@@ -193,12 +193,14 @@ app.get(`${API_BASE}/auth/google/callback`, async (req, res) => {
 
         console.log('[Auth] Google login success:', user.email);
 
-        res.redirect(`${FRONTEND_URL}?auth_token=${token}&auth_user=${encodeURIComponent(JSON.stringify({
+        const userData = {
             id: user.id,
             email: user.email,
             name: user.name,
             avatar: user.avatar
-        }))`);
+        };
+        const redirectUrl = FRONTEND_URL + '?auth_token=' + token + '&auth_user=' + encodeURIComponent(JSON.stringify(userData));
+        res.redirect(redirectUrl);
 
     } catch (err) {
         console.error('[Auth] Google OAuth error:', err.message);
