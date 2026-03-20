@@ -15,7 +15,7 @@ const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 
 const ALLOWED_ORIGINS = isProduction
-    ? ['https://aris.app', 'https://www.aris.app', '.railway.app']
+    ? ['https://aris.app', 'https://www.aris.app', '.railway.app', 'aris.tuyoisaza.com']
     : ['http://localhost:3000', 'http://localhost:5173'];
 
 app.use(helmet({ contentSecurityPolicy: false }));
