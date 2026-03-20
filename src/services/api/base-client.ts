@@ -1,4 +1,4 @@
-const API_URL = '/api';
+export const API_URL = '/api';
 
 let cachedToken: string | null = null;
 let cacheTime = 0;
