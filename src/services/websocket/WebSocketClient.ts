@@ -3,8 +3,6 @@
  * Handles WebSocket connection, presence tracking, and real-time updates
  */
 
-import { supabase } from '../supabase';
-
 interface WebSocketMessage {
   type: string;
   data?: any;
@@ -26,31 +24,14 @@ interface FamilyPresence {
   [userId: string]: PresenceData;
 }
 
-interface XPNotification {
-  userId: string;
-  xpAmount: number;
-  newTotal: number;
-  reason: string;
-  timestamp: string;
-}
-
-interface SkillProgressUpdate {
-  userId: string;
-  skillId: string;
-  skillName: string;
-  progress: number;
-  level: number;
-  timestamp: string;
-}
-
 export class WebSocketClient {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private isConnecting = false;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
-  private presenceUpdateInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: number | null = null;
+  private presenceUpdateInterval: number | null = null;
   
   private subscribers: Map<string, Set<(data: any) => void>> = new Map();
   private familyPresence: FamilyPresence = {};
@@ -64,7 +45,6 @@ export class WebSocketClient {
   }
 
   private initializeSubscriptions() {
-    // Initialize common subscription types
     this.subscribers.set('connection_established', new Set());
     this.subscribers.set('user_status_change', new Set());
     this.subscribers.set('xp_notification', new Set());
@@ -81,32 +61,20 @@ export class WebSocketClient {
     }
 
     try {
-      // Get current session and user info
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session found');
-      }
-
-      this.currentUserId = session.user.id;
+      const token = localStorage.getItem('aris_token');
+      const userStr = localStorage.getItem('aris_user');
       
-      // Get user's family ID
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('family_id')
-        .eq('id', this.currentUserId)
-        .single();
-      
-      this.currentFamilyId = profile?.family_id;
-
-      if (!this.currentFamilyId) {
-        console.warn('User is not part of any family');
+      if (!token || !userStr) {
+        console.log('No active session - WebSocket not connecting');
         return;
       }
 
+      const user = JSON.parse(userStr);
+      this.currentUserId = user.id;
+      
       this.isConnecting = true;
       
-      // Create WebSocket connection with JWT token
-      const wsUrl = `${this.WEBSOCKET_URL}?token=${session.access_token}`;
+      const wsUrl = `${this.WEBSOCKET_URL}?token=${token}`;
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => this.handleOpen();
@@ -126,10 +94,7 @@ export class WebSocketClient {
     this.isConnecting = false;
     this.reconnectAttempts = 0;
     
-    // Start heartbeat to keep connection alive
     this.startHeartbeat();
-    
-    // Start presence updates
     this.startPresenceUpdates();
     
     this.emit('connection_established', {
@@ -159,26 +124,15 @@ export class WebSocketClient {
           break;
           
         case 'xp_notification':
-          // Handle XP notification
-          break;
-          
         case 'skill_progress':
-          // Handle skill progress update
-          break;
-          
         case 'typing_indicator':
-          // Handle typing indicator
-          break;
-          
         case 'collaborative_action':
-          // Handle collaborative action
           break;
           
         default:
           console.log('Unknown message type:', message.type);
       }
 
-      // Emit to subscribers
       this.emit(message.type, message.data);
       
     } catch (error) {
@@ -190,7 +144,6 @@ export class WebSocketClient {
     console.log('WebSocket connection closed');
     this.isConnecting = false;
     
-    // Clear intervals
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
@@ -201,7 +154,6 @@ export class WebSocketClient {
       this.presenceUpdateInterval = null;
     }
     
-    // Attempt to reconnect
     this.attemptReconnect();
   }
 
@@ -228,20 +180,20 @@ export class WebSocketClient {
   }
 
   private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
+    this.heartbeatInterval = window.setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ type: 'heartbeat' }));
       }
-    }, 30000); // Send heartbeat every 30 seconds
+    }, 30000);
   }
 
   private startPresenceUpdates() {
-    this.presenceUpdateInterval = setInterval(() => {
+    this.presenceUpdateInterval = window.setInterval(() => {
       this.updatePresence({
         status: 'online',
         lastSeen: new Date().toISOString()
       });
-    }, 60000); // Update presence every minute
+    }, 60000);
   }
 
   public updatePresence(presence: Partial<PresenceData>) {
@@ -292,7 +244,6 @@ export class WebSocketClient {
     
     this.subscribers.get(type)!.add(callback);
     
-    // Return unsubscribe function
     return () => {
       this.subscribers.get(type)?.delete(callback);
     };
@@ -321,7 +272,6 @@ export class WebSocketClient {
     
     if (presence.status === 'offline') return false;
     
-    // Consider user offline if last seen more than 5 minutes ago
     const lastSeenTime = new Date(presence.lastSeen).getTime();
     const now = new Date().getTime();
     const fiveMinutesAgo = now - (5 * 60 * 1000);
@@ -336,7 +286,6 @@ export class WebSocketClient {
   }
 
   public disconnect() {
-    // Clear intervals
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
@@ -347,31 +296,37 @@ export class WebSocketClient {
       this.presenceUpdateInterval = null;
     }
     
-    // Close WebSocket connection
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
     
-    // Clear state
     this.familyPresence = {};
     this.currentUserId = null;
     this.currentFamilyId = null;
   }
 }
 
-// Create singleton instance
 export const websocketClient = new WebSocketClient();
 
 // Auto-connect when user session is available
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) {
-    // Wait a bit for other initializations to complete
+const checkAuthAndConnect = () => {
+  const token = localStorage.getItem('aris_token');
+  const user = localStorage.getItem('aris_user');
+  
+  if (token && user) {
     setTimeout(() => {
       websocketClient.connect();
     }, 1000);
-  } else if (event === 'SIGNED_OUT') {
+  } else {
     websocketClient.disconnect();
+  }
+};
+
+// Listen for storage changes (for cross-tab auth sync)
+window.addEventListener('storage', (e) => {
+  if (e.key === 'aris_token' || e.key === 'aris_user') {
+    checkAuthAndConnect();
   }
 });
 
