@@ -1,6 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { supabaseAdmin } from './db.js';
+import { prisma } from './db.js';
 import { verifyToken } from './prisma/auth.js';
 import { log } from './utils/logger.js';
 
@@ -49,15 +49,16 @@ export const requireAuth = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
-        const { data: user, error } = await supabaseAdmin.from('users').select('*').eq('id', decoded.userId).single();
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId }
+        });
 
-        if (error || !user) {
+        if (!user) {
             log('Auth', 'WARN', 'Middleware', 'User not found');
             return res.status(401).json({ error: 'User not found' });
         }
 
         req.user = user;
-        req.userClient = supabaseAdmin;
         next();
     } catch (err) {
         log('Auth', 'ERROR', 'Middleware', `Auth error: ${err.message}`);

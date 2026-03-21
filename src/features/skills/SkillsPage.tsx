@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../services/supabase';
+import { api } from '../../services/api';
 import { motion } from 'framer-motion';
 import { Sword, Star, Trophy, ArrowRight, LayoutGrid, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -191,12 +191,7 @@ const SkillsPage = () => {
         setIsBulkDeleting(true);
         try {
             console.log('[SkillsPage] Bulk deleting IDs:', selectedIds);
-            const { error } = await supabase
-                .from('user_skill_progress')
-                .delete()
-                .in('id', selectedIds);
-
-            if (error) throw error;
+            await api.deleteSkills(selectedIds);
 
             console.log('[SkillsPage] Bulk delete success');
             setSkills(prev => prev.filter(s => !selectedIds.includes(s.id)));
@@ -242,12 +237,7 @@ const SkillsPage = () => {
     const fetchSkills = async () => {
         if (!user) return;
         try {
-            // Fetch user progress joined with skill details
-            const { data, error } = await supabase
-                .from('user_skill_progress')
-                .select('*, skills ( id, title, category, description )')
-                .eq('user_id', user.id)
-                .order('last_practiced_at', { ascending: false });
+            const { data, error } = await api.getSkills();
 
             if (error) console.error('Error fetching skills:', error);
             else setSkills(data || []);
@@ -263,7 +253,7 @@ const SkillsPage = () => {
     }, [user]);
 
     const confirmDelete = (skill) => {
-        console.log('[SkillsPage] confirmDelete called for:', skill?.skills?.title);
+        console.log('[SkillsPage] confirmDelete called for:', skill?.skill?.title || skill?.title);
         setSkillToDelete(skill);
     };
 
@@ -273,22 +263,13 @@ const SkillsPage = () => {
             return;
         }
 
-        console.log('[SkillsPage] Attempting to delete skill:', skillToDelete.id, skillToDelete.skills?.title);
+        console.log('[SkillsPage] Attempting to delete skill:', skillToDelete.id);
 
         try {
-            const { error } = await supabase
-                .from('user_skill_progress')
-                .delete()
-                .eq('id', skillToDelete.id);
+            await api.deleteSkill(skillToDelete.id);
 
-            if (error) {
-                console.error('[SkillsPage] Supabase delete error:', error);
-                throw error;
-            }
+            console.log('[SkillsPage] Skill deleted successfully');
 
-            console.log('[SkillsPage] Skill deleted successfully from DB');
-
-            // Update local state
             setSkills(prev => prev.filter(s => s.id !== skillToDelete.id));
             setSkillToDelete(null);
         } catch (err) {
@@ -305,52 +286,15 @@ const SkillsPage = () => {
         console.log('[SkillsPage] Handling Add Skill:', { name, description });
 
         try {
-            // 1. Check if skill exists (simple case-insensitive check)
-            let { data: existingSkill } = await supabase
-                .from('skills')
-                .select('id')
-                .ilike('title', name)
-                .single();
+            const { data, error } = await api.createSkill({ title: name, category, description });
 
-            let skillId = existingSkill?.id;
+            if (error) throw error;
 
-            // 2. If not, create it
+            const skillId = data?.skill?.id;
             if (!skillId) {
-                const { data: newSkill, error: createError } = await supabase
-                    .from('skills')
-                    .insert([{
-                        title: name,
-                        category: category,
-                        description: description // Save the context/payload as description
-                    }])
-                    .select()
-                    .single();
-
-                if (createError) throw createError;
-                skillId = newSkill.id;
+                throw new Error('Failed to create skill');
             }
 
-            // 3. Link to user (Create initial progress)
-            const { error: linkError } = await supabase
-                .from('user_skill_progress')
-                .insert([{
-                    user_id: user.id,
-                    skill_id: skillId,
-                    level: 1,
-                    xp: 0
-                }]);
-
-            if (linkError) {
-                // If unique violation (already tracked), just ignore
-                if (linkError.code === '23505') {
-                    // navigate to it if it exists
-                    navigate(`/skills/${skillId}`);
-                    return;
-                }
-                throw linkError;
-            }
-
-            // Navigate to the new skill page immediately
             navigate(`/skills/${skillId}`);
 
         } catch (err) {
@@ -385,7 +329,7 @@ const SkillsPage = () => {
                 isOpen={!!skillToDelete}
                 onClose={() => setSkillToDelete(null)}
                 onConfirm={handleDeleteSkill}
-                itemName={skillToDelete?.skills?.title || t('skills.title')}
+                itemName={skillToDelete?.skill?.title || skillToDelete?.title || t('skills.title')}
                 t={t}
             />
 

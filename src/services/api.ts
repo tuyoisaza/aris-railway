@@ -8,6 +8,7 @@ import * as user from './api/user';
 import * as billing from './api/billing';
 import * as admin from './api/admin';
 import * as agora from './api/agora';
+import * as skills from './api/skills';
 
 export const api = {
   setUnauthorizedCallback,
@@ -35,6 +36,13 @@ export const api = {
   updateUser: user.updateUser,
 
   getResources: topics.getResources,
+
+  getSkills: skills.getSkills,
+  getAllSkills: skills.getAllSkills,
+  createSkill: skills.createSkill,
+  deleteSkill: skills.deleteSkill,
+  deleteSkills: skills.deleteSkills,
+  getSkillNotifications: skills.getSkillNotifications,
 
   getProjects: projects.getProjects,
   createProjectFromSkill: projects.createProjectFromSkill,

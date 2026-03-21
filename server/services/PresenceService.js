@@ -1,5 +1,6 @@
 import { socketServer } from '../websocket/socketServer.js';
 import { log } from '../utils/logger.js';
+import { prisma } from '../db.js';
 
 /**
  * PresenceService
@@ -191,30 +192,31 @@ class PresenceService {
      */
     async updatePresenceInDatabase(userId, presenceData) {
         try {
-            const { createClient } = require('@supabase/supabase-js');
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.SUPABASE_SERVICE_KEY
-            );
-
-            const { error } = await supabase
-                .from('user_presence')
-                .upsert([{
-                    user_id: userId,
-                    family_id: presenceData.familyId,
+            await prisma.userPresence.upsert({
+                where: { userId },
+                update: {
+                    familyId: presenceData.familyId,
                     status: presenceData.status,
-                    last_seen: new Date(presenceData.lastSeen).toISOString(),
-                    current_activity: presenceData.currentActivity,
-                    current_entity_type: presenceData.currentEntityType,
-                    current_entity_id: presenceData.currentEntityId,
-                    socket_id: presenceData.socketId,
-                    is_visible: presenceData.isVisible,
-                    updated_at: new Date().toISOString()
-                }], {
-                    onConflict: 'user_id'
-                });
-
-            if (error) throw error;
+                    lastSeen: new Date(presenceData.lastSeen),
+                    currentActivity: presenceData.currentActivity,
+                    currentEntityType: presenceData.currentEntityType,
+                    currentEntityId: presenceData.currentEntityId,
+                    socketId: presenceData.socketId,
+                    isVisible: presenceData.isVisible,
+                    updatedAt: new Date()
+                },
+                create: {
+                    userId,
+                    familyId: presenceData.familyId,
+                    status: presenceData.status,
+                    lastSeen: new Date(presenceData.lastSeen),
+                    currentActivity: presenceData.currentActivity,
+                    currentEntityType: presenceData.currentEntityType,
+                    currentEntityId: presenceData.currentEntityId,
+                    socketId: presenceData.socketId,
+                    isVisible: presenceData.isVisible
+                }
+            });
         } catch (error) {
             log('PRESENCE', 'ERROR', 'Database', `Failed to update presence for ${userId}: ${error.message}`);
         }

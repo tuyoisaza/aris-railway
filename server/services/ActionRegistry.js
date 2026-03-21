@@ -8,6 +8,7 @@
  */
 
 import { socketServer } from '../websocket/socketServer.js';
+import { prisma } from '../db.js';
 
 class ActionRegistry {
     constructor() {
@@ -230,27 +231,16 @@ registry.registerAction('collaboration:session_start', 'heavy', async (userId, p
     // Payload: { familyId, sessionType, title, description, participants }
     console.log(`[Action:Collaboration] Starting session: ${payload.title} for family ${payload.familyId}`);
     
-    // Create collaborative session in database
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_KEY
-    );
-    
-    const { data: session, error } = await supabase
-        .from('collaborative_sessions')
-        .insert([{
-            family_id: payload.familyId,
-            initiated_by: userId,
-            session_type: payload.sessionType,
+    const session = await prisma.collaborativeSession.create({
+        data: {
+            familyId: payload.familyId,
+            initiatedBy: userId,
+            sessionType: payload.sessionType,
             title: payload.title,
             description: payload.description,
             participants: payload.participants || []
-        }])
-        .select()
-        .single();
-    
-    if (error) throw error;
+        }
+    });
     
     // Notify family members
     socketServer.broadcastToFamily(payload.familyId, {
@@ -295,27 +285,17 @@ registry.registerAction('shared_entity:create', 'light', async (userId, payload)
     // Payload: { familyId, entityType, entityId, title, description }
     console.log(`[Action:SharedEntity] Creating shared ${payload.entityType}: ${payload.title}`);
     
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_KEY
-    );
-    
-    const { data: sharedEntity, error } = await supabase
-        .from('shared_entities')
-        .insert([{
-            family_id: payload.familyId,
-            entity_type: payload.entityType,
-            entity_id: payload.entityId,
-            shared_by: userId,
+    const sharedEntity = await prisma.sharedEntity.create({
+        data: {
+            familyId: payload.familyId,
+            entityType: payload.entityType,
+            entityId: payload.entityId,
+            sharedBy: userId,
             title: payload.title,
             description: payload.description,
             tags: payload.tags || []
-        }])
-        .select()
-        .single();
-    
-    if (error) throw error;
+        }
+    });
     
     // Notify family members
     socketServer.broadcastToFamily(payload.familyId, {
