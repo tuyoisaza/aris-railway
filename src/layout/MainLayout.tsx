@@ -56,7 +56,7 @@ const MainLayout = ({ children }) => {
                 opacity: 0.7,
                 border: '1px solid var(--color-border)'
             }}>
-                v595b1a5
+                v0.0.1
             </div>
             {/* Top Right Controls Container */}
             <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 60, display: 'flex', gap: '16px', alignItems: 'center' }}>
