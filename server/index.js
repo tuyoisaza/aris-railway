@@ -99,29 +99,31 @@ async function loadRoutes() {
     console.log('[Bootstrap] All routes loaded');
 }
 
-app.use(express.static(path.join(__dirname, "public")));
-
 app.get("*", (_req, res) => {
     const indexPath = path.join(__dirname, "public/index.html");
     res.sendFile(indexPath);
 });
 
-server.listen(PORT, "0.0.0.0", async () => {
-    console.log(`[Bootstrap] ARIS server listening on port ${PORT}`);
-
+async function startServer() {
     try {
         await connectDatabase();
         console.log("[Bootstrap] Database connected");
         
         await loadRoutes();
-        
         app.use(express.static(path.join(__dirname, "public")));
         
         console.log("[Bootstrap] Full application loaded successfully");
+        
+        server.listen(PORT, "0.0.0.0", () => {
+            console.log(`[Bootstrap] ARIS server listening on port ${PORT}`);
+        });
     } catch (err) {
         console.error("[Bootstrap] Failed to load application:", err);
+        process.exit(1);
     }
-});
+}
+
+startServer();
 
 process.on('SIGINT', async () => {
     console.log('[Bootstrap] Shutting down...');
