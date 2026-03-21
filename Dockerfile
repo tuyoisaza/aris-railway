@@ -12,6 +12,8 @@ COPY src/ ./src/
 COPY public/ ./public/
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json ./
 
+COPY VERSION ./public/VERSION.txt
+
 ARG VITE_STRIPE_PRICE_PLUS
 ENV VITE_STRIPE_PRICE_PLUS=$VITE_STRIPE_PRICE_PLUS
 

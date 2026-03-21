@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Chrome } from 'lucide-react';
+import { Chrome, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import { useGlobal } from '../../context/GlobalContext';
@@ -16,6 +16,15 @@ const LoginModal = ({ isOpen, onLogin }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [version, setVersion] = useState('...');
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        fetch('/VERSION.txt')
+            .then(res => res.text())
+            .then(v => setVersion(v.trim()))
+            .catch(() => setVersion('?'));
+    }, []);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -98,6 +107,30 @@ const LoginModal = ({ isOpen, onLogin }) => {
         }
     };
 
+    const handleCopyVersion = async () => {
+        const logs = [];
+        const supportText = `ARIS Support Report
+==================
+Version: ${version}
+Domain: ${window.location.hostname}
+Time: ${new Date().toISOString()}
+URL: ${window.location.href}
+
+Console Logs:
+${logs.join('\n') || '(no logs)'}
+
+==================
+Please describe your issue below:
+`;
+        try {
+            await navigator.clipboard.writeText(supportText);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // fallback
+        }
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -138,6 +171,27 @@ const LoginModal = ({ isOpen, onLogin }) => {
                         <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
                             {isSignup ? t('auth.signup') : t('auth.login')}
                         </h2>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
+                            <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px', fontFamily: 'monospace' }}>
+                                v{version}
+                            </span>
+                            <button
+                                onClick={handleCopyVersion}
+                                title="Copy version for support"
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: '2px',
+                                    cursor: 'pointer',
+                                    color: copied ? '#22c55e' : 'var(--color-text-secondary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    opacity: copied ? 1 : 0.5,
+                                }}
+                            >
+                                {copied ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                        </div>
                         <p style={{ color: 'var(--color-text-secondary)', marginBottom: '32px' }}>
                             {isSignup ? t('auth.noAccount').replace('?', '') : t('auth.haveAccount').replace('?', '')}
                         </p>
