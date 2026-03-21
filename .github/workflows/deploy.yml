@@ -1,0 +1,30 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Push to Railway
+        uses: railway-actions/railway@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: aris
+        env:
+          VITE_STRIPE_PRICE_PLUS: ${{ secrets.VITE_STRIPE_PRICE_PLUS }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_ORG_ID: ${{ secrets.OPENAI_ORG_ID }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          NODE_ENV: production

@@ -56,7 +56,6 @@ tools/
 .dockerignore
 
 # CI/CD
-.github/
 APIS AND SECRETS.txt
 prisma/dev.db
 prisma/prisma/
