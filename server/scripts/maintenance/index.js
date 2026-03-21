@@ -178,6 +178,21 @@ app.post(`${API_BASE}/chat`, async (req, res) => {
     }
 });
 
+// Admin prompts endpoint
+app.get(`${API_BASE}/admin/prompts`, async (req, res) => {
+    try {
+        const { prisma } = await import('../../prisma/client.js');
+        const prompts = await prisma.systemPrompt.findMany({
+            where: { active: true },
+            orderBy: { name: 'asc' }
+        });
+        res.json(prompts);
+    } catch (err) {
+        console.error('[Admin] Prompts error:', err.message);
+        res.json([{ id: 'default', name: 'Default', content: 'You are ARIS, a friendly AI learning companion.' }]);
+    }
+});
+
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback';
