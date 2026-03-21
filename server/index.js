@@ -107,6 +107,16 @@ async function startServer() {
         await loadRoutes();
         app.use(express.static(path.join(__dirname, "public")));
         
+        app.get("/VERSION.txt", (_req, res) => {
+            const versionPath = path.join(__dirname, "../VERSION");
+            res.sendFile(versionPath);
+        });
+        
+        app.get("/version", (_req, res) => {
+            const versionPath = path.join(__dirname, "../VERSION");
+            res.sendFile(versionPath);
+        });
+        
         app.get("*", (_req, res) => {
             const indexPath = path.join(__dirname, "public/index.html");
             res.sendFile(indexPath);

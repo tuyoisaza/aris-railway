@@ -12,8 +12,6 @@ COPY src/ ./src/
 COPY public/ ./public/
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json ./
 
-COPY VERSION ./public/VERSION.txt
-
 ARG VITE_STRIPE_PRICE_PLUS
 ENV VITE_STRIPE_PRICE_PLUS=$VITE_STRIPE_PRICE_PLUS
 
@@ -50,6 +48,7 @@ RUN npm install --omit=dev --legacy-peer-deps
 COPY server/ ./
 
 COPY --from=builder /app/dist ./public
+COPY --from=builder /app/VERSION ./VERSION
 COPY --from=prisma /app/server/node_modules/.prisma ./node_modules/.prisma
 
 ENV NODE_ENV=production
