@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { createServer } from "http";
 import { connectDatabase, disconnectDatabase } from "./db.js";
 import { verifyToken } from "./prisma/auth.js";
-import { SocketServer } from "./websocket/socketServer.js";
+import { socketServer } from "./websocket/socketServer.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -128,7 +128,6 @@ async function startServer() {
         server.listen(PORT, "0.0.0.0", () => {
             console.log(`[Bootstrap] ARIS server listening on port ${PORT}`);
             
-            const socketServer = new SocketServer();
             socketServer.initialize(server);
             console.log('[Bootstrap] WebSocket server initialized');
         });
