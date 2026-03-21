@@ -47,8 +47,8 @@ const API_BASE = '/api';
 app.post(`${API_BASE}/auth/login`, async (req, res) => {
     const { email, password } = req.body;
     try {
-        const { prisma } = await import('./prisma/client.js');
-        const { verifyPassword, generateToken } = await import('./prisma/auth.js');
+        const { prisma } = await import('../../prisma/client.js');
+        const { verifyPassword, generateToken } = await import('../../prisma/auth.js');
         
         const user = await prisma.user.findUnique({ where: { email } });
         
@@ -76,8 +76,8 @@ app.post(`${API_BASE}/auth/login`, async (req, res) => {
 app.post(`${API_BASE}/auth/signup`, async (req, res) => {
     const { email, password, name } = req.body;
     try {
-        const { prisma } = await import('./prisma/client.js');
-        const { hashPassword, generateToken } = await import('./prisma/auth.js');
+        const { prisma } = await import('../../prisma/client.js');
+        const { hashPassword, generateToken } = await import('../../prisma/auth.js');
         
         const existing = await prisma.user.findUnique({ where: { email } });
         if (existing) {
@@ -142,8 +142,8 @@ app.get(`${API_BASE}/auth/google/callback`, async (req, res) => {
     }
 
     try {
-        const { prisma } = await import('./prisma/client.js');
-        const { generateToken } = await import('./prisma/auth.js');
+        const { prisma } = await import('../../prisma/client.js');
+        const { generateToken } = await import('../../prisma/auth.js');
 
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',

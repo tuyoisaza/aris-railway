@@ -40,6 +40,24 @@ const MainLayout = ({ children }) => {
 
     return (
         <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: 'var(--color-bg)' }}>
+            {/* Version Badge - Top Left */}
+            <div style={{
+                position: 'fixed',
+                top: '12px',
+                left: '16px',
+                zIndex: 60,
+                background: 'var(--color-bg-secondary)',
+                color: 'var(--color-text-secondary)',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                fontWeight: '500',
+                opacity: 0.7,
+                border: '1px solid var(--color-border)'
+            }}>
+                v595b1a5
+            </div>
             {/* Top Right Controls Container */}
             <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 60, display: 'flex', gap: '16px', alignItems: 'center' }}>
 
