@@ -38,8 +38,8 @@ export const createConversation = async (
     await handleResponse(res);
     return await unwrapResponse(res);
   } catch (e: any) {
-    console.error(e);
-    return null;
+    console.error('[API] createConversation error:', e);
+    return { error: e.message || 'Failed to create conversation' };
   }
 };
 

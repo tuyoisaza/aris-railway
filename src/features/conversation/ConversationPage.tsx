@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Maximize2, Minimize2, Volume2, Square, Loader2, Copy, Check, Users, Wifi, WifiOff } from 'lucide-react';
 
+import { api } from '../../services/api';
 import { useGlobal } from '../../context/GlobalContext';
 import { VoiceService } from '../../services/voice';
 import { websocketClient } from '../../services/websocket/WebSocketClient';
@@ -289,43 +290,40 @@ const processUserMessage = async (text, lang) => {
 
             try {
                 // First check XP notifications (primary method)
-                const notificationsResponse = await fetch('/api/skills/notifications');
-                if (notificationsResponse.ok) {
-                    const notifications = await notificationsResponse.json();
-                    
-                    for (const notification of notifications) {
-                        addMessage('system', `🌟 +${notification.xp_amount} XP earned in ${notification.skill_name || 'skill'}!`, {
-                            type: 'xp_gain',
-                            xpAmount: notification.xp_amount,
-                            skill: notification.skill_name || 'Skill'
-                        });
-                    }
+                const notificationsData = await api.getSkillNotifications();
+                const notifications = notificationsData?.data || notificationsData || [];
+                
+                for (const notification of notifications) {
+                    addMessage('system', `🌟 +${notification.xpAmount} XP earned!`, {
+                        type: 'xp_gain',
+                        xpAmount: notification.xpAmount,
+                        skill: notification.skillId || 'Skill'
+                    });
                 }
 
                 // Also check skill progress for backup
-                const response = await fetch('/api/skills/progress');
-                if (response.ok) {
-                    const skills = await response.json();
-                    const relevantSkills = skills.filter(skill => skill.xp > 0);
-                    
-                    for (const skill of relevantSkills) {
-                        if (skill.xp > (lastXpRef.current[skill.skill_id] || 0)) {
-                            const xpGained = skill.xp - (lastXpRef.current[skill.skill_id] || 0);
-                            lastXpRef.current[skill.skill_id] = skill.xp;
-                            
-                            // Show XP gain notification if not already shown via notifications
-                            if (!notificationsResponse.ok || (await notificationsResponse.json()).length === 0) {
-                                addMessage('system', `🌟 +${xpGained} XP earned in ${skill.skill_name}!`, {
-                                    type: 'xp_gain',
-                                    xpAmount: xpGained,
-                                    skill: skill.skill_name
-                                });
-                            }
+                const skillsData = await api.getSkills();
+                const skills = skillsData?.data || skillsData || [];
+                const relevantSkills = skills.filter(skill => (skill.xp || 0) > 0);
+                
+                for (const skill of relevantSkills) {
+                    const skillXp = skill.xp || 0;
+                    const skillId = skill.skillId || skill.id;
+                    if (skillXp > (lastXpRef.current[skillId] || 0)) {
+                        const xpGained = skillXp - (lastXpRef.current[skillId] || 0);
+                        lastXpRef.current[skillId] = skillXp;
+                        
+                        if (notifications.length === 0) {
+                            addMessage('system', `🌟 +${xpGained} XP earned!`, {
+                                type: 'xp_gain',
+                                xpAmount: xpGained,
+                                skill: skill.skill?.title || 'Skill'
+                            });
                         }
                     }
                 }
             } catch (error) {
-                console.error('Failed to check XP gains:', error);
+                console.error('Failed to check XP gains:', error?.message || error);
             }
         };
 

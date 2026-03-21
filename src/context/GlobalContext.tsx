@@ -251,16 +251,19 @@ export const GlobalProvider = ({ children }) => {
         if (!conversationId && state.user?.id) {
             console.log("[Global] Creating new conversation for user:", state.user.id);
             try {
-                // Determine topic (simple heuristic or null)
-                // Pass current 'language' state
                 const newConv = await api.createConversation(state.user.id, text.substring(0, 30) + '...', null, language);
                 console.log("[Global] createConversation result:", newConv);
+
+                if (newConv?.error) {
+                    console.error("[Global] createConversation error:", newConv.error);
+                    addMessage('ai', `Failed to create conversation: ${newConv.error}`);
+                    return;
+                }
 
                 if (newConv && newConv.id) {
                     conversationId = newConv.id;
                     isNew = true;
-                    // Optimistically add to savedChats so Sidebar updates immediately
-                    const conversationObj = { ...newConv, messages: [], language }; // Ensure optimisitic update has language
+                    const conversationObj = { ...newConv, messages: [], language };
                     console.log("[Global] Optimistically adding new chat to sidebar:", conversationObj);
 
                     setState(prev => ({
@@ -268,11 +271,11 @@ export const GlobalProvider = ({ children }) => {
                         activeConversationId: conversationId,
                         savedChats: [conversationObj, ...prev.savedChats]
                     }));
-                } else {
+                } else if (newConv) {
                     console.error("[Global] createConversation returned invalid data:", newConv);
                 }
-            } catch (e) {
-                console.error("Failed to create conversation persistence", e);
+            } catch (e: any) {
+                console.error("Failed to create conversation persistence:", e?.message || e);
             }
         } else if (!state.user?.id) {
             console.error("[Global] User ID missing in sendMessage!");
