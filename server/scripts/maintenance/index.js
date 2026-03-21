@@ -105,6 +105,79 @@ app.get(`${API_BASE}/health`, (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Skills notifications endpoint
+app.get(`${API_BASE}/skills/notifications`, async (req, res) => {
+    res.json({ notifications: [] });
+});
+
+// Topics endpoints
+app.get(`${API_BASE}/topics`, async (req, res) => {
+    try {
+        const { prisma } = await import('../../prisma/client.js');
+        const topics = await prisma.topic.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+        res.json(topics);
+    } catch (err) {
+        res.json([]);
+    }
+});
+
+// Conversations endpoints
+app.get(`${API_BASE}/conversations`, async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    
+    try {
+        const { verifyToken } = await import('../../prisma/auth.js');
+        const decoded = verifyToken(token);
+        if (!decoded) return res.status(401).json({ error: 'Invalid token' });
+        
+        const { prisma } = await import('../../prisma/client.js');
+        const conversations = await prisma.conversation.findMany({
+            where: { userId: decoded.userId },
+            orderBy: { updatedAt: 'desc' },
+            take: 50
+        });
+        res.json(conversations);
+    } catch (err) {
+        res.json([]);
+    }
+});
+
+// Chat endpoint (placeholder for AI responses)
+app.post(`${API_BASE}/chat`, async (req, res) => {
+    const { message, conversationId } = req.body;
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    
+    try {
+        const { verifyToken } = await import('../../prisma/auth.js');
+        const decoded = verifyToken(token);
+        if (!decoded) return res.status(401).json({ error: 'Invalid token' });
+        
+        const { prisma } = await import('../../prisma/client.js');
+        const OpenAI = (await import('openai')).default;
+        
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: message }],
+            max_tokens: 1000
+        });
+        
+        const response = completion.choices[0]?.message?.content || 'I apologize, but I could not generate a response.';
+        
+        res.json({ response, conversationId });
+    } catch (err) {
+        console.error('[Chat] Error:', err.message);
+        res.status(500).json({ error: 'AI service unavailable', message: 'I apologize, but I\'m having trouble starting the conversation. Please try again later.' });
+    }
+});
+
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback';
