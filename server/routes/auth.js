@@ -146,8 +146,109 @@ router.post('/login', authLimiter, async (req, res) => {
 });
 
 router.get('/google', async (req, res) => {
-    log('Auth', 'WARN', 'OAuth', 'Google OAuth not configured - using local auth');
-    res.status(501).json({ error: 'Google OAuth not configured' });
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${process.env.FRONTEND_URL}/api/auth/google/callback`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://aris.tuyoisaza.com';
+
+    if (!clientId) {
+        log('Auth', 'WARN', 'OAuth', 'Google OAuth not configured - missing GOOGLE_CLIENT_ID');
+        return res.status(501).json({ error: 'Google OAuth not configured' });
+    }
+
+    const scopes = encodeURIComponent('email profile');
+    const state = Math.random().toString(36).substring(7);
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}&access_type=offline&prompt=consent&state=${state}`;
+
+    log('Auth', 'INFO', 'OAuth', 'Redirecting to Google OAuth');
+    res.json({ url: authUrl });
+});
+
+router.get('/google/callback', async (req, res) => {
+    const { code, error } = req.query;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://aris.tuyoisaza.com';
+
+    if (error) {
+        log('Auth', 'WARN', 'OAuth', `Google OAuth error: ${error}`);
+        return res.redirect(`${frontendUrl}?auth_error=${encodeURIComponent(error)}`);
+    }
+
+    if (!code) {
+        log('Auth', 'ERROR', 'OAuth', 'No authorization code received');
+        return res.redirect(`${frontendUrl}?auth_error=no_code`);
+    }
+
+    try {
+        const clientId = process.env.GOOGLE_CLIENT_ID;
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+        const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${frontendUrl}/api/auth/google/callback`;
+
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                code,
+                client_id: clientId,
+                client_secret: clientSecret,
+                redirect_uri: redirectUri,
+                grant_type: 'authorization_code'
+            })
+        });
+
+        const tokenData = await tokenRes.json();
+
+        if (!tokenData.access_token) {
+            log('Auth', 'ERROR', 'OAuth', 'Failed to get access token');
+            return res.redirect(`${frontendUrl}?auth_error=token_failed`);
+        }
+
+        const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        });
+
+        const googleUser = await userRes.json();
+
+        if (!googleUser.email) {
+            log('Auth', 'ERROR', 'OAuth', 'Failed to get user info');
+            return res.redirect(`${frontendUrl}?auth_error=user_info_failed`);
+        }
+
+        let user = await prisma.user.findUnique({
+            where: { email: googleUser.email }
+        });
+
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    email: googleUser.email,
+                    name: googleUser.name || googleUser.email.split('@')[0],
+                    plan: 'free',
+                    role: 'user'
+                }
+            });
+            log('Auth', 'INFO', 'OAuth', `New user created via Google: ${user.email}`);
+        } else {
+            log('Auth', 'INFO', 'OAuth', `Google login success: ${user.email}`);
+        }
+
+        const token = generateToken({
+            userId: user.id,
+            email: user.email
+        });
+
+        res.redirect(`${frontendUrl}?auth_token=${token}&auth_user=${encodeURIComponent(JSON.stringify({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            plan: user.plan,
+            avatar: user.avatar
+        }))}`);
+
+    } catch (err) {
+        log('Auth', 'ERROR', 'OAuth', `Callback error: ${err.message}`);
+        res.redirect(`${frontendUrl}?auth_error=${encodeURIComponent(err.message)}`);
+    }
 });
 
 export default router;
