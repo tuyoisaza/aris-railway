@@ -2,7 +2,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { supabaseAdmin } from './db.js';
 import { verifyToken } from './prisma/auth.js';
-import { log } from '../utils/logger.js';
+import { log } from './utils/logger.js';
 
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
