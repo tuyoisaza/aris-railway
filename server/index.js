@@ -99,11 +99,6 @@ async function loadRoutes() {
     console.log('[Bootstrap] All routes loaded');
 }
 
-app.get("*", (_req, res) => {
-    const indexPath = path.join(__dirname, "public/index.html");
-    res.sendFile(indexPath);
-});
-
 async function startServer() {
     try {
         await connectDatabase();
@@ -111,6 +106,11 @@ async function startServer() {
         
         await loadRoutes();
         app.use(express.static(path.join(__dirname, "public")));
+        
+        app.get("*", (_req, res) => {
+            const indexPath = path.join(__dirname, "public/index.html");
+            res.sendFile(indexPath);
+        });
         
         console.log("[Bootstrap] Full application loaded successfully");
         
