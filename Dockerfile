@@ -53,10 +53,6 @@ COPY --from=prisma /app/server/node_modules/.prisma ./node_modules/.prisma
 ENV NODE_ENV=production
 ENV DATABASE_URL="file:/app/server/data/aris.db"
 
-RUN mkdir -p /app/server/data && \
-    touch /app/server/data/aris.db && \
-    chmod 777 /app/server/data/aris.db
+RUN mkdir -p /app/server/data
 
-EXPOSE 3000
-
-CMD ["node", "index.js"]
+ENTRYPOINT ["sh", "-c", "npx prisma@5.22.0 migrate deploy && node index.js"]
