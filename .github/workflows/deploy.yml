@@ -13,12 +13,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Push to Railway
-        uses: railway-actions/railway@main
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: aris
+      - name: Install Railway
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service aris
         env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           VITE_STRIPE_PRICE_PLUS: ${{ secrets.VITE_STRIPE_PRICE_PLUS }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
