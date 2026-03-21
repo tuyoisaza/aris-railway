@@ -78,6 +78,36 @@ class ApiClient {
         return this.request(endpoint, { ...options, method: 'DELETE' });
     }
 
+    // Chat methods
+    async createConversation(userId: string, title: string, topicId: string | null, language: string) {
+        return this.post('/chat/conversation', { userId, title, topicId, language });
+    }
+
+    async getConversations(userId: string) {
+        return this.get(`/chat/folders/${userId}`);
+    }
+
+    async deleteConversation(conversationId: string) {
+        return this.delete(`/chat/conversation/${conversationId}`);
+    }
+
+    async updateConversation(conversationId: string, updates: any) {
+        return this.put(`/chat/conversation/${conversationId}`, updates);
+    }
+
+    async createMessage(conversationId: string, role: string, content: string) {
+        return this.post('/chat/message', { conversationId, role, content });
+    }
+
+    // Skills methods
+    async getSkills() {
+        return this.get('/skills');
+    }
+
+    async getSkillNotifications() {
+        return this.get('/skills/notifications');
+    }
+
     // Auth methods
     async login(email: string, password: string) {
         const response = await this.post('/auth/login', { email, password });
