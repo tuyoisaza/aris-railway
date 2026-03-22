@@ -8,7 +8,7 @@ export const getPrompts = async () => {
 
 export const updatePrompt = async (
   agentId: string,
-  data: { prompt_text: string; instruction_text?: string; model: string; temperature: number }
+  data: { promptText?: string; model?: string; temperature?: number; name?: string; active?: boolean }
 ) => {
   const res = await fetch(`${API_URL}/admin/prompts/${agentId}`, {
     method: 'PUT',

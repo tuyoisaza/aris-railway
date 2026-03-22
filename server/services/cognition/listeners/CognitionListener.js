@@ -1,5 +1,5 @@
 import EventManager from '../EventManager.js';
-import { supabaseAdmin } from '../../../db.js';
+import { prisma } from '../../../db.js';
 import jobQueue from '../../jobQueue.js';
 
 class CognitionListener {
@@ -15,28 +15,22 @@ class CognitionListener {
         if (!aiResponse) return;
 
         try {
-            // 1. Check for MILESTONES
-            // Legacy V1 check contained isMilestone, V2 uses action.type
             const isMilestone = aiResponse.isMilestone || (aiResponse.action && aiResponse.action.type === 'milestone');
-
             if (isMilestone) {
                 await this.handleMilestone(userId, conversationId, aiResponse);
             }
 
-            // 2. Check for PROJECT PROPOSALS
             const isProposal = aiResponse.isProposal || (aiResponse.action && aiResponse.action.type === 'proposal');
-
             if (isProposal) {
                 await this.handleProposal(userId, conversationId, aiResponse);
             }
-
         } catch (err) {
             console.error('[CognitionListener] Error processing cognitive artifacts:', err);
         }
     }
 
     async handleMilestone(userId, conversationId, aiResponse) {
-        console.log(`[CognitionListener] 📍 Processing Milestone for Conv ${conversationId}`);
+        console.log(`[CognitionListener] Processing Milestone for Conv ${conversationId}`);
 
         const milestoneType = aiResponse.milestoneType || aiResponse.action?.payload?.type || 'DEPTH';
         const topic = aiResponse.topic || aiResponse.action?.payload?.topic || 'General';
@@ -48,14 +42,14 @@ class CognitionListener {
             display: `${milestoneType}: ${topic}`
         };
 
-        // Insert System Message (Artifact)
-        await supabaseAdmin.from('messages').insert([{
-            conversation_id: conversationId,
-            role: 'system',
-            text: JSON.stringify(milestonePayload)
-        }]);
+        await prisma.message.create({
+            data: {
+                conversationId,
+                role: 'system',
+                content: JSON.stringify(milestonePayload)
+            }
+        });
 
-        // Trigger Background Job
         jobQueue.addJob('milestone_triggered', {
             conversationId,
             userId,
@@ -65,7 +59,7 @@ class CognitionListener {
     }
 
     async handleProposal(userId, conversationId, aiResponse) {
-        console.log(`[CognitionListener] 💡 Processing Proposal for Conv ${conversationId}`);
+        console.log(`[CognitionListener] Processing Proposal for Conv ${conversationId}`);
 
         const projectData = aiResponse.projectData || aiResponse.action?.payload || {};
         const proposalPayload = {
@@ -73,22 +67,21 @@ class CognitionListener {
             projectData: projectData
         };
 
-        // Insert System Message (Artifact)
-        await supabaseAdmin.from('messages').insert([{
-            conversation_id: conversationId,
-            role: 'system',
-            text: JSON.stringify(proposalPayload)
-        }]);
+        await prisma.message.create({
+            data: {
+                conversationId,
+                role: 'system',
+                content: JSON.stringify(proposalPayload)
+            }
+        });
 
-        // Insert AI Intro Message (if not already handled by the stream, but usually proposals need a wrapper)
-        // In the original chat.js, we added a specific "I've drafted a project..." message.
-        // We should replicate that or let the AI's natural response handle it.
-        // Original logic explicitly added it:
-        await supabaseAdmin.from('messages').insert([{
-            conversation_id: conversationId,
-            role: 'ai',
-            text: `I've drafted a project idea for you based on our chat: **${projectData.title || 'Project'}**. You can start it whenever you're ready.`
-        }]);
+        await prisma.message.create({
+            data: {
+                conversationId,
+                role: 'ai',
+                content: `I've drafted a project idea for you based on our chat: **${projectData.title || 'Project'}**. You can start it whenever you're ready.`
+            }
+        });
     }
 }
 

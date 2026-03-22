@@ -1,8 +1,8 @@
 import express from 'express';
 import { prisma } from '../db.js';
-import { log } from '../utils/logger.js';
 import { requireAuth, validate, sendError, sendSuccess } from '../middleware.js';
 import { schemas } from '../middleware.js';
+import TeacherAgent from '../services/ai/agents/TeacherAgent.js';
 
 const router = express.Router();
 
@@ -105,36 +105,24 @@ router.post('/message', requireAuth, validate(schemas.message), async (req, res,
             take: 10
         });
 
-        const conversationLanguage = 'en';
+        const conversation = await prisma.conversation.findUnique({
+            where: { id: conversationId }
+        });
+        const conversationLanguage = conversation?.language || 'en';
 
-        let aiResponse = 'I understand. Let me help you with that.';
-        
-        try {
-            const OpenAI = (await import('openai')).default;
-            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-            
-            const messages = history.map(m => ({
-                role: m.role === 'ai' ? 'assistant' : m.role,
-                content: m.content
-            }));
-            messages.push({ role: 'user', content });
-            
-            const completion = await openai.chat.completions.create({
-                model: 'gpt-4o-mini',
-                messages,
-                max_tokens: 1000
-            });
-            
-            aiResponse = completion.choices[0]?.message?.content || aiResponse;
-        } catch (aiErr) {
-            console.error('[Chat] AI Error:', aiErr.message);
-        }
+        const aiResponse = await TeacherAgent.respondToUser(
+            userId,
+            content,
+            history.map(m => ({ role: m.role, content: m.content })),
+            conversationLanguage,
+            conversationId
+        );
 
         const aiMsg = await prisma.message.create({
             data: {
                 conversationId,
                 role: 'ai',
-                content: aiResponse
+                content: JSON.stringify(aiResponse)
             }
         });
 

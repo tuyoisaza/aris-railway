@@ -13,7 +13,11 @@ const AGENTS = [
     { id: 'cartographer_rel', name: 'The Cartographer (Map)' },
     { id: 'librarian', name: 'The Librarian' },
     { id: 'scout', name: 'The Scout' },
-    { id: 'thoth', name: 'Thoth: The Organizer' }
+    { id: 'thoth', name: 'Thoth: The Organizer' },
+    { id: 'daedalus', name: 'Daedalus: Project Architect' },
+    { id: 'ogma', name: 'Ogma: Memory Keeper' },
+    { id: 'lugh', name: 'Lugh: Skill Curriculum' },
+    { id: 'skill', name: 'Skill Classifier' }
 ];
 
 const AdminDashboard = () => {
@@ -60,11 +64,10 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         if (prompts[activeAgent]) {
-            setEditedPrompt(prompts[activeAgent].prompt_text || '');
-            setEditedInstruction(prompts[activeAgent].instruction_text || '');
+            setEditedPrompt(prompts[activeAgent].promptText || prompts[activeAgent].prompt_text || '');
             setEditedModel(prompts[activeAgent].model || 'gpt-4o');
             setEditedTemp(prompts[activeAgent].temperature || 0.7);
-            setTestHistory([]); // Reset history when switching agents
+            setTestHistory([]);
         }
     }, [activeAgent, prompts]);
 
@@ -73,8 +76,10 @@ const AdminDashboard = () => {
         try {
             const data = await api.admin.getPrompts();
             const promptMap = {};
-            if (Array.isArray(data)) {
-                data.forEach(p => promptMap[p.agent_id] = p);
+            if (data?.data && Array.isArray(data.data)) {
+                data.data.forEach(p => promptMap[p.agentId || p.agent_id] = p);
+            } else if (Array.isArray(data)) {
+                data.forEach(p => promptMap[p.agentId || p.agent_id] = p);
             }
             setPrompts(promptMap);
         } catch (err) {
@@ -163,8 +168,7 @@ const AdminDashboard = () => {
     const handleSave = async () => {
         try {
             await api.admin.updatePrompt(activeAgent, {
-                prompt_text: editedPrompt,
-                instruction_text: editedInstruction,
+                promptText: editedPrompt,
                 model: editedModel,
                 temperature: parseFloat(editedTemp.toString())
             });

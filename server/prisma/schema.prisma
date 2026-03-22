@@ -584,13 +584,15 @@ model Action {
 // ============ SYSTEM PROMPTS TABLE ============
 
 model SystemPrompt {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  content   String
-  version   Int      @default(1)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  agentId     String   @unique
+  name        String
+  promptText  String
+  model       String   @default("gpt-4o")
+  temperature Float    @default(0.7)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("system_prompts")
 }

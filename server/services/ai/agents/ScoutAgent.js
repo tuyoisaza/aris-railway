@@ -1,79 +1,82 @@
 import BaseAgent from './BaseAgent.js';
-import { supabaseAdmin } from '../../../db.js';
+import { prisma } from '../../../db.js';
 
 class ScoutAgent extends BaseAgent {
     constructor() {
         super('scout');
     }
 
-    /**
-     * Triggered by 'content_enriched' job
-     */
-    async findResources({ topicId }) {
+    async findResources(topicId) {
+        console.log(`[Scout] Finding resources for topic ${topicId}`);
+
         try {
-            const { data: topic, error } = await supabaseAdmin
-                .from('topics')
-                .select('*')
-                .eq('id', topicId)
-                .single();
+            const topic = await prisma.topic.findUnique({
+                where: { id: topicId }
+            });
 
-            if (error || !topic) {
-                console.error(`[Scout] Topic ${topicId} not found.`);
-                return;
+            if (!topic) {
+                console.log(`[Scout] Topic not found: ${topicId}`);
+                return null;
             }
 
-            console.log(`[Scout] Finding resources for: ${topic.title}`);
+            const resources = await this.research(topic);
 
-            await this.loadSystemPrompt();
-
-            // Force JSON
-            const config = { ...this.config, jsonMode: true };
-            const finalSystemPrompt = (this.systemPrompt || 'You are a research scout.') + "\n\n" + (this.instructionText || '');
-
-            const messages = [
-                { role: 'system', content: finalSystemPrompt },
-                { role: 'user', content: `Find 3 high-quality external resources (Books, Papers, Videos) for the topic: "${topic.title}".` }
-            ];
-
-            const response = await this.provider.chat(messages, config);
-            let result;
-            try {
-                result = JSON.parse(response);
-            } catch (e) {
-                console.error('[Scout] JSON Parse Error:', e);
-                return;
-            }
-
-            if (result.resources && result.resources.length > 0) {
-                const resourcesToInsert = result.resources.map(r => ({
-                    topic_id: topicId,
-                    title: r.title,
-                    type: r.type, // Ensure it matches enum if strict, else might error. Schema had enum.
-                    url: r.url,
-                    metadata: { description: r.description },
-                    view_status: 'Available'
-                }));
-
-                const { error: insertError } = await supabaseAdmin
-                    .from('resources')
-                    .insert(resourcesToInsert);
-
-                if (insertError) {
-                    console.error('[Scout] DB Insert Error:', insertError.message);
-                } else {
-                    console.log(`[Scout] Added ${result.resources.length} resources for ${topic.title}`);
+            if (resources && resources.length > 0) {
+                for (const resource of resources) {
+                    await prisma.resource.create({
+                        data: {
+                            topicId,
+                            title: resource.title,
+                            type: resource.type || 'article',
+                            url: resource.url || null,
+                            metadata: JSON.stringify({
+                                author: resource.author,
+                                description: resource.description
+                            })
+                        }
+                    });
                 }
             }
 
+            return resources;
         } catch (err) {
-            console.error(`[Scout] Error processing topic ${topicId}:`, err);
+            console.error('[Scout] Research error:', err);
+            return null;
         }
     }
 
-    async researchQuery(query) {
-        // ... legacy method ...
-        console.log(`[Scout] Researching: ${query}`);
-        return await this.provider.chat([{ role: 'user', content: query }], this.config);
+    async research(topic) {
+        const prompt = `Find 3 high-quality external resources (books, articles, videos, or thinkers) for learning about "${topic.title}" (${topic.category || 'General'}).
+
+For each resource provide:
+- title
+- type (book, article, video, thinker)
+- url (if applicable)
+- author
+- description (why this resource is valuable)
+
+Return JSON array of resources.`;
+
+        const messages = [
+            { role: 'system', content: this.promptText || 'You are a scout that researches external resources.' },
+            { role: 'user', content: prompt }
+        ];
+
+        try {
+            const rawResponse = await this.chat(messages);
+            const parsed = await this.parse(rawResponse);
+            
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+            if (parsed.resources && Array.isArray(parsed.resources)) {
+                return parsed.resources;
+            }
+            return [];
+        } catch (err) {
+            console.error('[Scout] Research parse error:', err);
+            return [];
+        }
     }
 }
 
