@@ -4,6 +4,12 @@ import { motion } from 'framer-motion';
 
 import { useTranslation } from 'react-i18next';
 
+const QUICK_REPLIES = [
+    "Tell me more about this",
+    "Can you give me an example?",
+    "Help me practice this"
+];
+
 const ChatInput = ({ onSend, onMicClick }) => {
     const { t } = useTranslation();
     const [text, setText] = useState('');
@@ -16,6 +22,10 @@ const ChatInput = ({ onSend, onMicClick }) => {
         }
     };
 
+    const handleQuickReply = (reply) => {
+        onSend(reply);
+    };
+
     return (
         <div style={{
             position: 'fixed',
@@ -23,7 +33,7 @@ const ChatInput = ({ onSend, onMicClick }) => {
             left: 0,
             width: '100%',
             padding: '20px',
-            background: 'linear-gradient(to top, var(--color-bg) 80%, rgba(0,0,0,0))', // Adapted for theme
+            background: 'linear-gradient(to top, var(--color-bg) 80%, rgba(0,0,0,0))',
             zIndex: 20
         }}>
             <div style={{
@@ -31,11 +41,49 @@ const ChatInput = ({ onSend, onMicClick }) => {
                 margin: '0 auto',
                 position: 'relative'
             }}>
+                {/* Quick Reply Options */}
+                {!text.trim() && (
+                    <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        marginBottom: '12px',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center'
+                    }}>
+                        {QUICK_REPLIES.map((reply, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => handleQuickReply(reply)}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '20px',
+                                    border: '1px solid var(--color-primary)',
+                                    background: 'transparent',
+                                    color: 'var(--color-primary)',
+                                    fontSize: '14px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'var(--color-primary)';
+                                    e.currentTarget.style.color = '#fff';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'transparent';
+                                    e.currentTarget.style.color = 'var(--color-primary)';
+                                }}
+                            >
+                                {reply}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} style={{
                     background: 'var(--color-surface)',
                     borderRadius: '32px',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                    border: '1px solid var(--color-border)', // unified border color
+                    border: '1px solid var(--color-border)',
                     display: 'flex',
                     alignItems: 'center',
                     padding: '8px 8px 8px 20px',
