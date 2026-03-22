@@ -75,6 +75,7 @@ const MainLayout = ({ children }) => {
                 border: '1px solid var(--color-border)'
             }}>
                 <span>v{version}</span>
+                <span style={{ fontSize: '12px' }}>😊</span>
                 <button
                     onClick={handleCopy}
                     title="Copy version & logs for support"
