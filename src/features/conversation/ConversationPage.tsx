@@ -291,7 +291,11 @@ const processUserMessage = async (text, lang) => {
             try {
                 // First check XP notifications (primary method)
                 const notificationsData = await api.getSkillNotifications();
-                const notifications = notificationsData?.data || notificationsData || [];
+                const notifications = Array.isArray(notificationsData) 
+                    ? notificationsData 
+                    : Array.isArray(notificationsData?.data) 
+                        ? notificationsData.data 
+                        : [];
                 
                 for (const notification of notifications) {
                     addMessage('system', `🌟 +${notification.xpAmount} XP earned!`, {
@@ -303,8 +307,12 @@ const processUserMessage = async (text, lang) => {
 
                 // Also check skill progress for backup
                 const skillsData = await api.getSkills();
-                const skills = skillsData?.data || skillsData || [];
-                const relevantSkills = skills.filter(skill => (skill.xp || 0) > 0);
+                const skills = Array.isArray(skillsData) 
+                    ? skillsData 
+                    : Array.isArray(skillsData?.data) 
+                        ? skillsData.data 
+                        : [];
+                const relevantSkills = Array.isArray(skills) ? skills.filter(skill => (skill.xp || 0) > 0) : [];
                 
                 for (const skill of relevantSkills) {
                     const skillXp = skill.xp || 0;
