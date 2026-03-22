@@ -7,11 +7,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  notify:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Notify Railway
-        run: |
-          echo "Push to master detected. Railway should auto-deploy."
-          echo "If Railway is connected via GitHub integration, deployment happens automatically."
-          echo "Check Railway dashboard: https://railway.app/project/2d6733a1-a513-4a88-9438-28b58633a5a4"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Railway Deploy
+        run: railway up --service aris-railway-production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
