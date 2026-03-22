@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, CreditCard, Download, Moon, Sun, Check, ArrowLeft, LogOut, Brain, Trash2 } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
 import { VoiceService } from '../../services/voice';
-import { api } from '../../services/supabase';
+import { api } from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import ChatSidebar from '../conversation/ChatSidebar';
 

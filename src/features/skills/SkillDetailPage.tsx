@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../services/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sword, ArrowLeft, Calendar, Trophy, Star, BookOpen, Target, Lightbulb, ExternalLink, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '../../context/GlobalContext';
 import ChatSidebar from '../conversation/ChatSidebar';
 
-// ... imports
-import { CheckCircle, Lock, AlertCircle } from 'lucide-react'; // Add new icons
+import { CheckCircle, Lock, AlertCircle } from 'lucide-react';
 import { api } from '../../services/api';
 
 const SkillDetailPage = () => {
@@ -30,28 +28,19 @@ const SkillDetailPage = () => {
         const fetchSkillDetails = async () => {
             if (!user || !id) return;
             try {
-                // 1. Fetch Skill Progress
-                const { data: progress, error: skillError } = await supabase
-                    .from('user_skill_progress')
-                    .select('*, skills ( id, title, category, description, content )')
-                    .eq('user_id', user.id)
-                    .eq('skill_id', id)
-                    .single();
-
-                if (skillError) throw skillError;
-                setSkillData(progress);
-
-                // 2. Fetch Completed Projects linked to this skill
-                // Note: We need to filter by status='completed' ideally, but let's count all for now or 'active'/'completed'
-                const { count, error: projError } = await supabase
-                    .from('projects')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('skill_id', id)
-                    .eq('status', 'completed'); // Only completed projects count for mastery
-
-                if (!projError) {
-                    setProjectCount(count || 0);
+                // 1. Fetch user's skills and find the one matching id
+                const result = await api.getSkills();
+                const skills = result?.data || result || [];
+                const progress = skills.find((s: any) => s.skill?.id === id || s.skillId === id);
+                if (progress) {
+                    setSkillData(progress);
                 }
+
+                // 2. Fetch projects linked to this skill
+                const projectsResult = await api.getProjects(user.id);
+                const projects = projectsResult?.data || projectsResult || [];
+                const completedCount = projects.filter((p: any) => p.skillId === id && p.status === 'completed').length;
+                setProjectCount(completedCount);
 
             } catch (err) {
                 console.error('Error fetching skill detail:', err);

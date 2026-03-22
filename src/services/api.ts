@@ -1,5 +1,5 @@
 import { setUnauthorizedCallback } from './api/base-client';
-import * as auth from './api/auth';
+import * as authModule from './api/auth';
 import * as family from './api/family';
 import * as projects from './api/projects';
 import * as topics from './api/topics';
@@ -13,12 +13,15 @@ import * as skills from './api/skills';
 export const api = {
   setUnauthorizedCallback,
 
-  signup: auth.signup,
-  login: auth.login,
-  requestPasswordReset: auth.requestPasswordReset,
-  updatePassword: auth.updatePassword,
-  logout: auth.logout,
-  initiateGoogleLogin: auth.initiateGoogleLogin,
+  signup: authModule.signup,
+  login: authModule.login,
+  requestPasswordReset: authModule.requestPasswordReset,
+  updatePassword: authModule.updatePassword,
+  logout: authModule.logout,
+  initiateGoogleLogin: authModule.initiateGoogleLogin,
+
+  onAuthStateChange: authModule.onAuthStateChange,
+  getSession: authModule.getSession,
 
   createFamily: family.createFamily,
   getFamily: family.getFamily,

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { useGlobal } from '../../context/GlobalContext';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
-import { supabase } from '../../services/supabase';
 import ActivityFeed from './ActivityFeed';
 import AddMemberModal from './AddMemberModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -36,15 +35,12 @@ const ParentDashboard = () => {
     const fetchSkills = async () => {
         setLoadingSkills(true);
         try {
-            // Fetch user progress joined with skill details
-            const { data, error } = await supabase
-                .from('user_skill_progress')
-                .select('*, skills ( id, title, category, description )')
-                .eq('user_id', user.id)
-                .order('last_practiced_at', { ascending: false });
-
-            if (error) console.error('Error fetching skills:', error);
-            else setSkills(data || []);
+            const result = await api.getSkills();
+            if (result?.data) {
+                setSkills(result.data || []);
+            } else if (Array.isArray(result)) {
+                setSkills(result);
+            }
         } catch (err) {
             console.error(err);
         } finally {

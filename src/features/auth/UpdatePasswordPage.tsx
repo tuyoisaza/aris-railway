@@ -1,69 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../services/supabase'; // Ensure we have a supabase client export
 import { useNavigate } from 'react-router-dom';
 import { Lock, ArrowRight } from 'lucide-react';
-
-// Assuming we have a configured supabase client exported from somewhere. 
-// If not, we might need to initialize it here or import from a utils file.
-// Let's assume src/supabase.js exists (common pattern). If not, I'll need to create it or duplicate config.
-// Checking file structure... user didn't show src/supabase.js. 
-// I'll assume I need to create one OR rely on `api.js` but `api.js` is REST based.
-// Password reset link from Supabase contains: /update-password#access_token=...&refresh_token=...
-// The Supabase JS Client automatically picks this up if initialized !
-// If I don't use the JS client, I have to parse the hash manually.
-// For simplicity, I'll parse the hash manually if I can't find the client, 
-// BUT using the client is much safer.
-// I will assume I can import `createClient` and config from env.
-
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
-const supabaseClient = createClient(supabaseUrl, supabaseKey);
+import { api } from '../../services/api';
 
 const UpdatePasswordPage = () => {
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [status, setStatus] = useState('idle');
     const [msg, setMsg] = useState('');
     const navigate = useNavigate();
 
-    useEffect(() => {
-        // Supabase client should handle the session recovery from URL hash automatically
-        // when we create the client.
-        // We just need to check if we have a user.
-        const checkUser = async () => {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user) {
-                // If the link is invalid or expired, we might not have a user
-                // Or maybe the hash parsing didn't happen yet.
-                // It usually happens instant.
-                // Let's wait a bit or show "Invalid Link" if persistent.
-            }
-        };
-        checkUser();
-    }, []);
-
     const handleUpdate = async (e) => {
         e.preventDefault();
+        
+        if (password !== confirmPassword) {
+            setStatus('error');
+            setMsg('Passwords do not match');
+            return;
+        }
+        
+        if (password.length < 8) {
+            setStatus('error');
+            setMsg('Password must be at least 8 characters');
+            return;
+        }
+
         setStatus('loading');
 
         try {
-            const { error } = await supabaseClient.auth.updateUser({
-                password: password
-            });
-
-            if (error) throw error;
-
-            setStatus('success');
-            setMsg('Password updated successfully!');
-
-            setTimeout(() => {
-                navigate('/');
-            }, 2000);
-
+            const result = await api.updatePassword(password);
+            
+            if (result.error) {
+                setStatus('error');
+                setMsg(result.error);
+            } else {
+                setStatus('success');
+                setMsg('Password updated successfully!');
+                setTimeout(() => {
+                    navigate('/');
+                }, 2000);
+            }
         } catch (err) {
             setStatus('error');
-            setMsg(err.message);
+            setMsg('An unexpected error occurred');
         }
     };
 
@@ -113,6 +92,26 @@ const UpdatePasswordPage = () => {
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                                 placeholder="Min 8 chars"
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--color-border)',
+                                    background: 'var(--color-bg-alt)',
+                                    fontSize: '16px'
+                                }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Confirm Password</label>
+                            <input
+                                type="password"
+                                required
+                                minLength={8}
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                placeholder="Confirm your password"
                                 style={{
                                     width: '100%',
                                     padding: '12px',

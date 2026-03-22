@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { StorageService } from '../services/storage';
 import { AIService } from '../services/ai';
-import { api, auth } from '../services/supabase';
+import { api } from '../services/api';
 import i18n from '../i18n';
 import { parseV2Message, parseHistoryMessage } from '../utils/messageParser';
 
@@ -149,7 +149,7 @@ export const GlobalProvider = ({ children }) => {
         });
 
         // Auth Listener
-        const { data } = auth.onAuthStateChange((event, session) => {
+        const { data } = api.onAuthStateChange((event, session) => {
             console.log(`[Global] Auth Event: ${event}`, session?.user?.id);
 
             if (event === 'SIGNED_IN') {
@@ -165,7 +165,7 @@ export const GlobalProvider = ({ children }) => {
         });
 
         // Check existing session
-        const { data: sessionData } = auth.getSession();
+        const { data: sessionData } = api.getSession();
         if (sessionData.session && sessionData.user) {
             setState(prev => ({ ...prev, user: sessionData.user }));
             refreshData();

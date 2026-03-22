@@ -4,7 +4,6 @@ import { ArrowLeft, MessageSquare, Layers, ArrowRight, BookOpen, User, Star, Map
 import { useGlobal } from '../../context/GlobalContext';
 
 import { api } from '../../services/api';
-import { supabase } from '../../services/supabase'; // Import client
 
 const ParentTopicDetail = () => {
     const { id } = useParams();
@@ -23,11 +22,9 @@ const ParentTopicDetail = () => {
     React.useEffect(() => {
         if (topic.id) {
             const fetchResources = async () => {
-                const { data } = await supabase
-                    .from('resources')
-                    .select('*')
-                    .eq('topic_id', topic.id);
-                if (data) setScoutResources(data);
+                const result = await api.getResources(topic.id);
+                const resources = result?.data || result || [];
+                setScoutResources(resources);
             };
             fetchResources();
         }
