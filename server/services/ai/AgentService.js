@@ -62,12 +62,14 @@ class AgentService {
 
     async getAllAgents() {
         try {
-            return await prisma.systemPrompt.findMany({
+            const agents = await prisma.systemPrompt.findMany({
                 orderBy: { name: 'asc' }
             });
+            console.log(`[AgentService] Loaded ${agents.length} agents`);
+            return agents;
         } catch (err) {
             console.error('[AgentService] Error loading all agents:', err);
-            return [];
+            throw err;
         }
     }
 

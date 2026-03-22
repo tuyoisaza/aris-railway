@@ -93,4 +93,10 @@ const log = (module, severity, context, message) => {
 
 export const getLogs = () => logBuffer;
 
+export const getRecent = (count = 100) => {
+    return logBuffer.slice(-count);
+};
+
+export const getLevel = () => currentLevel;
+
 export { LEVELS, log, setLogLevel, getLogLevel };

@@ -20,7 +20,7 @@ router.get('/graph', requireAuth, async (req, res, next) => {
     try {
         const topics = await prisma.topic.findMany();
         const edges = await prisma.topicEdge.findMany();
-        sendSuccess(res, { nodes: topics, edges });
+        sendSuccess(res, { nodes: topics, links: edges });
     } catch (err) {
         next(err);
     }

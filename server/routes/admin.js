@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../db.js';
 import { requireAuth, sendSuccess, sendError } from '../middleware.js';
 import AgentService from '../services/ai/AgentService.js';
+import { log, getRecent, getLevel, setLevel } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -126,6 +127,95 @@ router.get('/services', requireAuth, requireAdmin, async (req, res) => {
         { name: 'ThothAgent', status: 'operational', message: 'Ready' },
     ];
     res.json(services);
+});
+
+router.get('/logs', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const logs = getRecent(100);
+        res.json(logs);
+    } catch (err) {
+        console.error('[Admin] Error getting logs:', err);
+        res.json([]);
+    }
+});
+
+router.get('/loglevel', requireAuth, requireAdmin, async (req, res) => {
+    res.json({ level: getLevel() });
+});
+
+router.put('/loglevel', requireAuth, requireAdmin, async (req, res) => {
+    const { level } = req.body;
+    if (typeof level === 'number' && level >= 0 && level <= 5) {
+        setLevel(level);
+        sendSuccess(res, { level });
+    } else {
+        sendError(res, 'Invalid log level', 400);
+    }
+});
+
+router.get('/settings/debug', requireAuth, requireAdmin, async (req, res) => {
+    res.json({ enabled: getLevel() >= 4 });
+});
+
+router.put('/settings/debug', requireAuth, requireAdmin, async (req, res) => {
+    const { enabled } = req.body;
+    setLevel(enabled ? 4 : 2);
+    sendSuccess(res, { enabled });
+});
+
+router.post('/restart', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const dbStatus = await prisma.$queryRaw`SELECT 1`.then(() => 'connected').catch(() => 'error');
+        sendSuccess(res, {
+            success: true,
+            status: { database: dbStatus },
+            timestamp: new Date().toISOString()
+        });
+    } catch (err) {
+        sendError(res, 'Restart check failed', 500);
+    }
+});
+
+router.get('/dump', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const dump = {};
+        
+        dump.users = await prisma.user.findMany({ select: { id: true, email: true, name: true, role: true, plan: true } });
+        dump.topics = await prisma.topic.findMany({ select: { id: true, title: true, category: true } });
+        dump.skills = await prisma.skill.findMany({ select: { id: true, title: true, category: true } });
+        dump.badges = await prisma.badge.findMany({ select: { id: true, name: true, description: true } });
+        dump.conversations = await prisma.conversation.count();
+        dump.messages = await prisma.message.count();
+        
+        res.json(dump);
+    } catch (err) {
+        console.error('[Admin] Error dumping database:', err);
+        res.status(500).json({ error: 'Failed to dump database' });
+    }
+});
+
+router.get('/actions', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const actions = await prisma.action.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+        sendSuccess(res, actions);
+    } catch (err) {
+        next(err);
+    }
+});
+
+router.get('/activity', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const logs = await prisma.activityLog.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 100
+        });
+        sendSuccess(res, logs);
+    } catch (err) {
+        next(err);
+    }
 });
 
 export default router;

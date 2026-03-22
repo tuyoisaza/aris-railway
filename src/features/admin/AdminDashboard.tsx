@@ -75,16 +75,25 @@ const AdminDashboard = () => {
         setLoading(true);
         try {
             const data = await api.admin.getPrompts();
+            console.log('[Admin] Prompts response:', data);
+            
+            if (data?.error) {
+                console.error('[Admin] Error loading prompts:', data.error);
+                alert('Failed to load prompts: ' + data.error);
+                return;
+            }
+            
             const promptMap = {};
             if (data?.data && Array.isArray(data.data)) {
                 data.data.forEach(p => promptMap[p.agentId || p.agent_id] = p);
             } else if (Array.isArray(data)) {
                 data.forEach(p => promptMap[p.agentId || p.agent_id] = p);
             }
+            console.log('[Admin] Loaded prompts:', Object.keys(promptMap));
             setPrompts(promptMap);
         } catch (err) {
-            console.error(err);
-            alert('Failed to load prompts');
+            console.error('[Admin] Exception loading prompts:', err);
+            alert('Failed to load prompts: ' + (err.message || 'Unknown error'));
         } finally {
             setLoading(false);
         }

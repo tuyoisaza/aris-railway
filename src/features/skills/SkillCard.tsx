@@ -3,13 +3,15 @@ import { motion } from 'framer-motion';
 import { Sword, ArrowRight, Trash2, Check } from 'lucide-react';
 
 const SkillCard = ({ skill, onDelete, t, selected = false, onToggleSelect = null }) => {
+    const skillData = skill.skill || skill.skills || skill;
+    
     return (
         <motion.div
             onClick={(e) => {
                 if (onToggleSelect) {
                     onToggleSelect(skill.id);
-                } else if (skill.skills) {
-                    window.location.href = `/skills/${skill.skills.id}`;
+                } else if (skillData?.id) {
+                    window.location.href = `/skills/${skillData.id}`;
                 }
             }}
             initial={{ opacity: 0, y: 10 }}
@@ -62,7 +64,7 @@ const SkillCard = ({ skill, onDelete, t, selected = false, onToggleSelect = null
             </div>
 
             <div style={{ flex: 1 }}>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{skill.skills?.title || 'Unknown Skill'}</h3>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{skillData?.title || 'Unknown Skill'}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                     <div style={{
                         padding: '4px 8px', background: 'rgba(245, 158, 11, 0.1)',

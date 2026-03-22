@@ -339,12 +339,70 @@ Return a valid JSON object with the following structure:
     }
 }
 
+async function seedSkillsAndTopics() {
+    const { prisma } = await import('./db.js');
+    
+    const skills = [
+        { id: 'skill-math-001', title: 'Mathematics', description: 'The abstract science of number, quantity, and space', category: 'STEM' },
+        { id: 'skill-science-001', title: 'Science', description: 'Systematic study of the natural world', category: 'STEM' },
+        { id: 'skill-history-001', title: 'History', description: 'The study of past events', category: 'Humanities' },
+        { id: 'skill-language-001', title: 'Language Arts', description: 'Communication through writing and reading', category: 'Humanities' },
+        { id: 'skill-art-001', title: 'Art & Design', description: 'Creative expression and visual communication', category: 'Arts' },
+    ];
+    
+    const topics = [
+        { id: 'topic-001', title: 'The Scientific Method', category: 'Science', description: 'A systematic approach to investigating phenomena' },
+        { id: 'topic-002', title: 'World War II', category: 'History', description: 'Global conflict from 1939 to 1945' },
+        { id: 'topic-003', title: 'Algebra Fundamentals', category: 'Mathematics', description: 'Basic algebraic concepts and operations' },
+        { id: 'topic-004', title: 'Creative Writing', category: 'Language Arts', description: 'Writing with artistic intent' },
+        { id: 'topic-005', title: 'Art History', category: 'Art & Design', description: 'The study of art across cultures and time periods' },
+    ];
+    
+    const badges = [
+        { id: 'badge-curious-001', name: 'Curious Mind', description: 'Started your first conversation', icon: '🌟', xpReward: 10 },
+        { id: 'badge-explorer-001', name: 'Explorer', description: 'Learned about 5 different topics', icon: '🧭', xpReward: 50 },
+        { id: 'badge-deep-dive-001', name: 'Deep Diver', description: 'Completed a topic with 10+ messages', icon: '🐋', xpReward: 100 },
+        { id: 'badge-master-001', name: 'Knowledge Master', description: 'Reached level 5 in any skill', icon: '🎓', xpReward: 200 },
+    ];
+    
+    try {
+        for (const skill of skills) {
+            const existing = await prisma.skill.findUnique({ where: { id: skill.id } });
+            if (!existing) {
+                await prisma.skill.create({ data: skill });
+                console.log(`[Bootstrap] Seeded skill: ${skill.title}`);
+            }
+        }
+        
+        for (const topic of topics) {
+            const existing = await prisma.topic.findUnique({ where: { id: topic.id } });
+            if (!existing) {
+                await prisma.topic.create({ data: topic });
+                console.log(`[Bootstrap] Seeded topic: ${topic.title}`);
+            }
+        }
+        
+        for (const badge of badges) {
+            const existing = await prisma.badge.findUnique({ where: { id: badge.id } });
+            if (!existing) {
+                await prisma.badge.create({ data: badge });
+                console.log(`[Bootstrap] Seeded badge: ${badge.name}`);
+            }
+        }
+        
+        console.log('[Bootstrap] Skills, Topics, and Badges seeding complete');
+    } catch (err) {
+        console.error('[Bootstrap] Error seeding skills/topics/badges:', err);
+    }
+}
+
 async function startServer() {
     try {
         await connectDatabase();
         console.log("[Bootstrap] Database connected");
         
         await seedPrompts();
+        await seedSkillsAndTopics();
         await loadRoutes();
         app.use(express.static(path.join(__dirname, "public")));
         
