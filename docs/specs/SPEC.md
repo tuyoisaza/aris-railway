@@ -526,7 +526,160 @@ Check Railway logs for server-side error details.
 
 ---
 
-## 9. File Structure
+## 9. AI Agents Framework
+
+### 9.1 Overview
+
+ARIS uses a multi-agent orchestration framework where AI agents work together to provide a comprehensive learning experience. All agents are powered by OpenAI and managed through a unified system.
+
+### 9.2 Agent System Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    AGENT ORCHESTRATION                    │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌─────────────┐     ┌─────────────┐                   │
+│  │ BaseAgent  │────▶│ Teacher     │  ← Main Chat     │
+│  │ (abstract) │     │ Cartographer │    Conversations   │
+│  └─────────────┘     │ Librarian   │                   │
+│         │             │ Scout       │                   │
+│         │             │ Thoth       │                   │
+│         │             │ Ogma        │                   │
+│         │             └─────────────┘                   │
+│         │                                               │
+│  ┌─────────────┐     ┌─────────────┐                   │
+│  │ AgentService│────▶│ JobQueue    │  ← Event System │
+│  │ (loading)  │     └─────────────┘                   │
+│  └─────────────┘                                       │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │                    AGORA (Memory)                   │   │
+│  │  Layer A: Stable State (user profile)           │   │
+│  │  Layer B: User Memory (inferred traits)         │   │
+│  │  Layer C: Session Context (short-term)          │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 9.3 Agents
+
+| Agent | ID | Purpose | Trigger |
+|-------|-----|---------|---------|
+| **Teacher** | `teacher` | Main conversation agent, generates responses with 3 options | `POST /api/chat/message` |
+| **Cartographer** | `cartographer` | Analyzes conversations, extracts topics | Every 4 messages |
+| **Cartographer (Map)** | `cartographer_rel` | Maps topic relationships | On topic creation |
+| **Librarian** | `librarian` | Enriches topics with content | After Cartographer |
+| **Scout** | `scout` | Researches external resources | After Librarian |
+| **Thoth** | `thoth` | Classifies topics into domains (KOS) | On topic detection |
+| **Ogma** | `ogma` | Processes memory signals, infers traits | On milestone |
+
+### 9.4 BaseAgent Class
+
+Location: `server/services/ai/agents/BaseAgent.js`
+
+All agents extend BaseAgent which provides:
+- Prompt loading from database (cached)
+- OpenAI integration
+- JSON response parsing
+
+```javascript
+class BaseAgent {
+    agentId: string
+    model: string
+    temperature: number
+    
+    async loadPrompt()    // Loads from SystemPrompt table
+    async chat(messages) // Calls OpenAI
+    async parse(raw)    // Parses JSON response
+}
+```
+
+### 9.5 AgentService
+
+Location: `server/services/ai/AgentService.js`
+
+Central service for managing prompts:
+- Loads prompts from `SystemPrompt` table
+- Caches prompts for performance
+- Provides update method for Admin dashboard
+
+### 9.6 SystemPrompt Schema
+
+Location: `server/prisma/schema.prisma`
+
+```prisma
+model SystemPrompt {
+  id           String   @id @default(uuid())
+  agentId     String   @unique  // 'teacher', 'cartographer', etc.
+  name        String
+  promptText  String   // Full system prompt
+  model       String   @default("gpt-4o")
+  temperature Float    @default(0.7)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+```
+
+### 9.7 TeacherAgent Response Format
+
+The Teacher agent returns structured JSON:
+
+```json
+{
+  "response": "Main conversational response text",
+  "options": ["Option 1", "Option 2", "Option 3"],
+  "action": {
+    "type": "milestone|proposal|null",
+    "payload": { ... }
+  }
+}
+```
+
+### 9.8 JobQueue Events
+
+| Event | Trigger | Agents Called |
+|-------|---------|---------------|
+| `conversation_updated` | Every 4 messages | Cartographer |
+| `topic_created` | On topic creation | Cartographer, Librarian |
+| `content_enriched` | After enrichment | Scout |
+| `milestone_triggered` | On milestone detection | Cartographer, Ogma |
+| `ogma_checkpoint` | After milestones | Ogma |
+
+### 9.9 Agora Memory System
+
+Location: `server/services/cognition/`
+
+Three-layer memory architecture:
+
+| Layer | Table | Purpose |
+|-------|-------|---------|
+| **A: Stable State** | `agoraStableState` | Immutable user profile |
+| **B: User Memory** | `agoraUserMemory` | Inferred traits |
+| **C: Session Context** | `agoraSessionContext` | Short-term state |
+
+### 9.10 Admin Dashboard Agents List
+
+```typescript
+const AGENTS = [
+    { id: 'teacher', name: 'The Teacher' },
+    { id: 'cartographer', name: 'The Cartographer (Chat)' },
+    { id: 'cartographer_rel', name: 'The Cartographer (Map)' },
+    { id: 'librarian', name: 'The Librarian' },
+    { id: 'scout', name: 'The Scout' },
+    { id: 'thoth', name: 'Thoth: The Organizer' },
+    { id: 'daedalus', name: 'Daedalus: Project Architect' },
+    { id: 'ogma', name: 'Ogma: Memory Keeper' },
+    { id: 'lugh', name: 'Lugh: Skill Curriculum' },
+    { id: 'skill', name: 'Skill Classifier' }
+];
+```
+
+---
+
+## 10. File Structure
 
 ```
 C:\ARIS\

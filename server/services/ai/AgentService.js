@@ -1,4 +1,4 @@
-import { prisma } from '../db.js';
+import { prisma } from '../../db.js';
 
 const AGENT_CACHE_TTL = 300000;
 
