@@ -109,12 +109,12 @@ async function startServer() {
         app.use(express.static(path.join(__dirname, "public")));
         
         app.get("/VERSION.txt", (_req, res) => {
-            const versionPath = path.join(__dirname, "../VERSION");
+            const versionPath = path.join(__dirname, "VERSION");
             res.sendFile(versionPath);
         });
         
         app.get("/version", (_req, res) => {
-            const versionPath = path.join(__dirname, "../VERSION");
+            const versionPath = path.join(__dirname, "VERSION");
             res.sendFile(versionPath);
         });
         
