@@ -238,10 +238,11 @@ model ProjectComment {
 // ============ CONVERSATION TABLES ============
 
 model Conversation {
-  id      String   @id @default(uuid())
-  userId  String
-  topicId String?
-  title   String?
+  id       String   @id @default(uuid())
+  userId   String
+  topicId  String?
+  title    String?
+  language String   @default("en")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
