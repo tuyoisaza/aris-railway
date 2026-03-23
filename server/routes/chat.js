@@ -72,7 +72,11 @@ router.put('/conversation/:id', requireAuth, async (req, res, next) => {
             where: { id, userId },
             data: updates
         });
-        sendSuccess(res, conversation);
+        sendSuccess(res, {
+            ...conversation,
+            is_archived: conversation.isArchived,
+            folder_id: conversation.folderId
+        });
     } catch (err) {
         next(err);
     }

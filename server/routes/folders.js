@@ -10,7 +10,7 @@ router.get('/', requireAuth, async (req, res, next) => {
             where: { userId: req.user.id },
             orderBy: { createdAt: 'asc' }
         });
-        sendSuccess(res, folders);
+        sendSuccess(res, folders.map(f => ({ ...f, title: f.name })));
     } catch (err) {
         next(err);
     }
@@ -26,7 +26,7 @@ router.post('/', requireAuth, async (req, res, next) => {
                 parentId
             }
         });
-        sendSuccess(res, folder);
+        sendSuccess(res, { ...folder, title: folder.name });
     } catch (err) {
         next(err);
     }
@@ -38,7 +38,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
             where: { id: req.params.id, userId: req.user.id },
             data: { name: req.body.title }
         });
-        sendSuccess(res, folder);
+        sendSuccess(res, { ...folder, title: folder.name });
     } catch (err) {
         next(err);
     }
