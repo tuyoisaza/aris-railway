@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import debugService from './debug/DebugService.js';
+import debugService from '../services/debug/DebugService.js';
 
 const correlationIdHeader = 'x-correlation-id';
 const debugSessionHeader = 'x-debug-session';
