@@ -58,4 +58,4 @@ ENV DATABASE_URL="file:/app/server/data/aris.db"
 
 RUN mkdir -p /app/server/data
 
-ENTRYPOINT ["sh", "-c", "npx prisma@5.22.0 migrate deploy && node index.js"]
+ENTRYPOINT ["sh", "-c", "npx prisma@5.22.0 db push --accept-data-loss && node index.js"]
