@@ -258,3 +258,37 @@ export const checkFeatureFlag = async (name: string) => {
   await handleResponse(res);
   return await res.json();
 };
+
+export const getAuditLogs = async (params?: {
+  page?: number;
+  limit?: number;
+  userId?: string;
+  action?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set('page', params.page.toString());
+  if (params?.limit) searchParams.set('limit', params.limit.toString());
+  if (params?.userId) searchParams.set('userId', params.userId);
+  if (params?.action) searchParams.set('action', params.action);
+  if (params?.startDate) searchParams.set('startDate', params.startDate);
+  if (params?.endDate) searchParams.set('endDate', params.endDate);
+  
+  const url = `${API_URL}/admin/audit${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+  const res = await fetch(url, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const getAuditActions = async () => {
+  const res = await fetch(`${API_URL}/admin/audit/actions`, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const getAuditLog = async (id: string) => {
+  const res = await fetch(`${API_URL}/admin/audit/${id}`, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};

@@ -1,8 +1,8 @@
 # ARIS Project Context
 
-**Last Updated**: 2026-03-21
-**Current Version**: 0.0.30
-**Status**: Active development - WebSocket server enabled
+**Last Updated**: 2026-03-23
+**Current Version**: 0.0.33
+**Status**: Active development complete - All IA Standards features implemented
 
 ## Commit Message Convention
 
@@ -25,6 +25,15 @@ v0.0.30: Fix WebSocket import - use singleton instance instead of class
 | GitHub | https://github.com/tuyoisaza/aris-railway |
 
 ## Recent Changes
+
+### v0.0.33
+- Audit trail system: LOGIN_SUCCESS, LOGIN_FAILURE, SIGNUP events tracked
+
+### v0.0.32
+- Debug report copy function in admin panel
+
+### v0.0.31
+- Enable audit trail system
 
 ### v0.0.30
 - Fix WebSocket import - use singleton instance instead of class
@@ -75,5 +84,10 @@ The version badge in top-left corner has a copy button that captures:
 - Domain and URL
 - Console logs
 - Timestamp
+
+Admin Debug panel (`/admin/debug`) has "Copy Debug Report" button with:
+- Project info, user context, locale/timezone
+- Recent errors and logs (sanitized)
+- JSON export for structured data
 
 Used for bug reporting and support.

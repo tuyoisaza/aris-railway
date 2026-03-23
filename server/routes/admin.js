@@ -8,6 +8,7 @@ import usersRouter from './admin/users.js';
 import debugRouter from './admin/debug.js';
 import guidedactionsRouter from './admin/guidedactions.js';
 import featureflagsRouter from './admin/featureflags.js';
+import auditRouter from './admin/audit.js';
 
 const router = express.Router();
 
@@ -26,5 +27,6 @@ router.use('/users', usersRouter);
 router.use('/debug', debugRouter);
 router.use('/guidedactions', guidedactionsRouter);
 router.use('/featureflags', featureflagsRouter);
+router.use('/audit', auditRouter);
 
 export default router;

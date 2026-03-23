@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
-import { RefreshCw, Bug, Terminal, Clock, X, Plus } from 'lucide-react';
+import { useGlobal } from '../../../context/GlobalContext';
+import { RefreshCw, Bug, Terminal, Clock, X, Plus, Copy, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useConsoleCapture } from '../../../hooks/useConsoleCapture';
 
 const DURATION_OPTIONS = [
     { label: '5 minutes', value: 5 },
@@ -10,12 +13,16 @@ const DURATION_OPTIONS = [
 ];
 
 const AdminDebug = () => {
+    const { t } = useTranslation();
+    const { user } = useGlobal();
+    const { getLogs, getVersion } = useConsoleCapture();
     const [debugEnabled, setDebugEnabled] = useState(false);
     const [sessions, setSessions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activating, setActivating] = useState(false);
     const [duration, setDuration] = useState(15);
     const [reason, setReason] = useState('');
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         fetchDebugSettings();
@@ -67,6 +74,83 @@ const AdminDebug = () => {
         return `${hours}h ${mins % 60}m remaining`;
     };
 
+    const sanitizeLog = (log: string): string => {
+        let sanitized = log;
+        const patterns = [
+            /token["']?\s*[:=]\s*["']?[^"'$\s]{8,}["']?/gi,
+            /password["']?\s*[:=]\s*["']?[^"'$\s]{4,}["']?/gi,
+            /api[_-]?key["']?\s*[:=]\s*["']?[^"'$\s]{8,}["']?/gi,
+            /jwt["']?\s*[:=]\s*["']?[^"'$\s]{10,}["']?/gi,
+            /bearer\s+[A-Za-z0-9\-_.~+/]+=*/gi,
+            /sk-[A-Za-z0-9]{20,}/gi,
+            /"email"\s*:\s*"[^"]*@[^"]*"/g,
+            /"password"\s*:\s*"[^"]*"/g,
+        ];
+        for (const pattern of patterns) {
+            sanitized = sanitized.replace(pattern, '[REDACTED]');
+        }
+        return sanitized;
+    };
+
+    const handleCopyDebugReport = async () => {
+        try {
+            const version = await getVersion();
+            const logs = getLogs();
+            const sanitizedLogs = logs ? logs.split('\n').map(sanitizeLog).join('\n') : '';
+            
+            const userAgent = navigator.userAgent;
+            const locale = navigator.language;
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const currentPath = window.location.pathname;
+            
+            const reportData = {
+                project: 'ARIS',
+                version: version.trim(),
+                gitSha: 'N/A',
+                buildTimestamp: 'N/A',
+                userId: user?.id || 'unknown',
+                userRole: user?.role || 'unknown',
+                currentRoute: currentPath,
+                locale,
+                timezone,
+                userAgent,
+                recentConsoleErrors: sanitizedLogs ? sanitizedLogs.split('\n').filter(l => l.includes('[ERROR]')).slice(-20) : [],
+                recentLogs: sanitizedLogs ? sanitizedLogs.split('\n').slice(-80) : [],
+                timestamp: new Date().toISOString()
+            };
+
+            const plainText = `ARIS Debug Report
+==================
+Project: ${reportData.project}
+Version: ${reportData.version}
+Git SHA: ${reportData.gitSha}
+Build Timestamp: ${reportData.buildTimestamp}
+User ID: ${reportData.userId}
+User Role: ${reportData.userRole}
+Current Route: ${reportData.currentRoute}
+Locale: ${reportData.locale}
+Timezone: ${reportData.timezone}
+Timestamp: ${reportData.timestamp}
+
+Console Errors (recent):
+${reportData.recentConsoleErrors.length > 0 ? reportData.recentConsoleErrors.join('\n') : '(none)'}
+
+Recent Logs:
+${reportData.recentLogs.length > 0 ? reportData.recentLogs.join('\n') : '(none)'}
+
+==================
+JSON Data:
+${JSON.stringify(reportData, null, 2)}
+`;
+
+            await navigator.clipboard.writeText(plainText);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 3000);
+        } catch (err) {
+            console.error('[Admin/Debug] Error copying debug report:', err);
+        }
+    };
+
     if (loading) {
         return <div className="flex items-center justify-center h-full">Loading...</div>;
     }
@@ -75,13 +159,22 @@ const AdminDebug = () => {
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Debug Settings</h1>
-                <button
-                    onClick={fetchDebugSettings}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                    <RefreshCw size={16} />
-                    Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleCopyDebugReport}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                        {copied ? 'Copied!' : 'Copy Debug Report'}
+                    </button>
+                    <button
+                        onClick={fetchDebugSettings}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                    >
+                        <RefreshCw size={16} />
+                        Refresh
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6 mb-6">

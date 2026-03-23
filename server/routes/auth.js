@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../db.js';
 import { log } from '../utils/logger.js';
+import { audit } from '../utils/audit.js';
 import { authLimiter, validate } from '../middleware.js';
 import { schemas } from '../schemas.js';
 import { hashPassword, verifyPassword, generateToken } from '../prisma/auth.js';
@@ -52,6 +53,14 @@ router.post('/signup', authLimiter, async (req, res) => {
         });
 
         log('Auth', 'INFO', 'Signup', `Success for user: ${user.id}`);
+
+        audit.log({
+            userId: user.id,
+            userEmail: user.email,
+            action: 'SIGNUP',
+            ipAddress: req.ip || req.connection?.remoteAddress,
+            userAgent: req.headers['user-agent']
+        });
 
         const token = generateToken({
             userId: user.id,
@@ -105,6 +114,13 @@ router.post('/login', authLimiter, async (req, res) => {
         
         if (!validPassword) {
             log('Auth', 'WARN', 'Login', `Invalid password for: ${email}`);
+            audit.log({
+                userEmail: email,
+                action: 'LOGIN_FAILURE',
+                metadata: { reason: 'invalid_password' },
+                ipAddress: req.ip || req.connection?.remoteAddress,
+                userAgent: req.headers['user-agent']
+            });
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -114,6 +130,14 @@ router.post('/login', authLimiter, async (req, res) => {
         });
 
         log('Auth', 'INFO', 'Login', `Success for user: ${user.id}`);
+        
+        audit.log({
+            userId: user.id,
+            userEmail: user.email,
+            action: 'LOGIN_SUCCESS',
+            ipAddress: req.ip || req.connection?.remoteAddress,
+            userAgent: req.headers['user-agent']
+        });
 
         const token = generateToken({
             userId: user.id,

@@ -47,6 +47,7 @@ model User {
   agoraStableState   AgoraStableState?
   agoraSessionContexts AgoraSessionContext[]
   projectComments    ProjectComment[]
+  auditLogs          AuditLog[]
 
   @@map("users")
 }
@@ -629,7 +630,27 @@ model PresenceUpdate {
   @@map("presence_updates")
 }
 
-// ============ DEBUG SESSIONS TABLE ============
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  userEmail   String?
+  action      String
+  targetType  String?
+  targetId    String?
+  oldValue    String?
+  newValue    String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_log")
+}
 
 model DebugSession {
   id          String     @id @default(uuid())
