@@ -20,6 +20,7 @@ const AdminBadges = lazy(() => import('./features/admin/components/AdminBadges')
 const AdminUsers = lazy(() => import('./features/admin/components/AdminUsers'));
 const AdminDebug = lazy(() => import('./features/admin/components/AdminDebug'));
 const AdminGuidedActions = lazy(() => import('./features/admin/components/AdminGuidedActions'));
+const AdminFeatureFlags = lazy(() => import('./features/admin/components/AdminFeatureFlags'));
 const ProjectDetail = lazy(() => import('./features/projects/ProjectDetail'));
 const ForgotPasswordPage = lazy(() => import('./features/auth/ForgotPasswordPage'));
 const UpdatePasswordPage = lazy(() => import('./features/auth/UpdatePasswordPage'));
@@ -64,6 +65,7 @@ const AppRoutes = () => {
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/debug" element={<AdminDebug />} />
                 <Route path="/admin/guidedactions" element={<AdminGuidedActions />} />
+                <Route path="/admin/featureflags" element={<AdminFeatureFlags />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/update-password" element={<UpdatePasswordPage />} />
 

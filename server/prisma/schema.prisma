@@ -628,3 +628,22 @@ model PresenceUpdate {
 
   @@map("presence_updates")
 }
+
+// ============ FEATURE FLAGS TABLE ============
+
+model FeatureFlag {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  scope       String    @default("GLOBAL")
+  enabled     Boolean   @default(false)
+  tenantId    String?
+  userId      String?
+  expiresAt   DateTime?
+  reviewDate  DateTime?
+  metadata    String    @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("feature_flags")
+}

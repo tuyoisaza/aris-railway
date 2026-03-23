@@ -181,3 +181,45 @@ export const getGuidedActions = async () => {
   await handleResponse(res);
   return await res.json();
 };
+
+export const getFeatureFlags = async (scope?: string) => {
+  const url = scope ? `${API_URL}/admin/featureflags?scope=${scope}` : `${API_URL}/admin/featureflags`;
+  const res = await fetch(url, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const createFeatureFlag = async (flag: any) => {
+  const res = await fetch(`${API_URL}/admin/featureflags`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify(flag),
+  });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const updateFeatureFlag = async (id: string, updates: any) => {
+  const res = await fetch(`${API_URL}/admin/featureflags/${id}`, {
+    method: 'PUT',
+    headers: await getHeaders(),
+    body: JSON.stringify(updates),
+  });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const deleteFeatureFlag = async (id: string) => {
+  const res = await fetch(`${API_URL}/admin/featureflags/${id}`, {
+    method: 'DELETE',
+    headers: await getHeaders(),
+  });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const checkFeatureFlag = async (name: string) => {
+  const res = await fetch(`${API_URL}/admin/featureflags/check/${name}`, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};

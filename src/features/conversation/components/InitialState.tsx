@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import ArisCircle from '../presence/ArisCircle';
+import ArisCircle from '../../presence/ArisCircle';
 
 interface InitialStateProps {
     circleState: 'idle' | 'listening' | 'thinking' | 'speaking';

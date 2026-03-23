@@ -1,9 +1,9 @@
 import React from 'react';
 import { Volume2, Square, Loader2, Copy, Check } from 'lucide-react';
-import { VoiceService } from '../../services/voice';
+import { VoiceService } from '../../../services/voice';
 import { useTranslation } from 'react-i18next';
-import MarkdownRenderer from './MarkdownRenderer';
-import ChatOptions from './ChatOptions';
+import MarkdownRenderer from '../MarkdownRenderer';
+import ChatOptions from '../ChatOptions';
 
 interface ChatMessageProps {
     msg: any;

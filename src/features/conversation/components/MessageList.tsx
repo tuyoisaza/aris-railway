@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ChatMessage from './ChatMessage';
-import ArisCircle from '../presence/ArisCircle';
+import ArisCircle from '../../presence/ArisCircle';
 
 interface MessageListProps {
     messages: any[];

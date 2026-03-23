@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
+import { api } from '../../../services/api';
 import { RefreshCw, Edit2, Trash2, Users, Shield } from 'lucide-react';
 
 const AdminUsers = () => {

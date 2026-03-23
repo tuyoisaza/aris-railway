@@ -7,6 +7,7 @@ import badgesRouter from './admin/badges.js';
 import usersRouter from './admin/users.js';
 import debugRouter from './admin/debug.js';
 import guidedactionsRouter from './admin/guidedactions.js';
+import featureflagsRouter from './admin/featureflags.js';
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use('/badges', badgesRouter);
 router.use('/users', usersRouter);
 router.use('/debug', debugRouter);
 router.use('/guidedactions', guidedactionsRouter);
+router.use('/featureflags', featureflagsRouter);
 
 export default router;
