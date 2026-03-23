@@ -4,12 +4,6 @@ import { motion } from 'framer-motion';
 
 import { useTranslation } from 'react-i18next';
 
-const QUICK_REPLIES = [
-    "Tell me more about this",
-    "Can you give me an example?",
-    "Help me practice this"
-];
-
 const ChatInput = ({ onSend, onMicClick }) => {
     const { t } = useTranslation();
     const [text, setText] = useState('');
@@ -20,10 +14,6 @@ const ChatInput = ({ onSend, onMicClick }) => {
             onSend(text);
             setText('');
         }
-    };
-
-    const handleQuickReply = (reply) => {
-        onSend(reply);
     };
 
     return (
@@ -41,44 +31,6 @@ const ChatInput = ({ onSend, onMicClick }) => {
                 margin: '0 auto',
                 position: 'relative'
             }}>
-                {/* Quick Reply Options */}
-                {!text.trim() && (
-                    <div style={{
-                        display: 'flex',
-                        gap: '8px',
-                        marginBottom: '12px',
-                        flexWrap: 'wrap',
-                        justifyContent: 'center'
-                    }}>
-                        {QUICK_REPLIES.map((reply, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => handleQuickReply(reply)}
-                                style={{
-                                    padding: '8px 16px',
-                                    borderRadius: '20px',
-                                    border: '1px solid var(--color-primary)',
-                                    background: 'transparent',
-                                    color: 'var(--color-primary)',
-                                    fontSize: '14px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'var(--color-primary)';
-                                    e.currentTarget.style.color = '#fff';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                    e.currentTarget.style.color = 'var(--color-primary)';
-                                }}
-                            >
-                                {reply}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
                 <form onSubmit={handleSubmit} style={{
                     background: 'var(--color-surface)',
                     borderRadius: '32px',

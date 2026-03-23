@@ -19,7 +19,12 @@ router.get('/folders/:userId', requireAuth, async (req, res, next) => {
             include: { messages: true },
             orderBy: { updatedAt: 'desc' }
         });
-        sendSuccess(res, conversations || []);
+        const mapped = (conversations || []).map(c => ({
+            ...c,
+            is_archived: c.isArchived,
+            folder_id: c.folderId
+        }));
+        sendSuccess(res, mapped);
     } catch (err) {
         next(err);
     }
@@ -41,7 +46,12 @@ router.post('/conversation', requireAuth, validate(schemas.conversation), async 
                 language: language || 'en'
             }
         });
-        sendSuccess(res, conversation);
+        const mapped = {
+            ...conversation,
+            is_archived: conversation.isArchived,
+            folder_id: conversation.folderId
+        };
+        sendSuccess(res, mapped);
     } catch (err) {
         next(err);
     }
