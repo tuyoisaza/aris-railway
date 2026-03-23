@@ -82,7 +82,8 @@ export const getFolders = async () => {
   try {
     const res = await fetch(`${API_URL}/folders`, { headers: await getHeaders() });
     if (!res.ok) return [];
-    return await res.json();
+    const payload = await res.json();
+    return payload?.data ?? payload;
   } catch (e: any) {
     console.error(e);
     return [];
@@ -96,7 +97,8 @@ export const createFolder = async (title: string) => {
       headers: await getHeaders(),
       body: JSON.stringify({ title }),
     });
-    return await res.json();
+    const payload = await res.json();
+    return payload?.data ?? payload;
   } catch (e: any) {
     console.error(e);
     return null;

@@ -1,7 +1,7 @@
 import { API_URL, getHeaders, handleResponse } from './base-client';
 
 export const getPrompts = async () => {
-  const res = await fetch(`${API_URL}/admin/prompts`, { headers: await getHeaders() });
+  const res = await fetch(`${API_URL}/admin/agents`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
@@ -10,7 +10,7 @@ export const updatePrompt = async (
   agentId: string,
   data: { promptText?: string; model?: string; temperature?: number; name?: string; active?: boolean }
 ) => {
-  const res = await fetch(`${API_URL}/admin/prompts/${agentId}`, {
+  const res = await fetch(`${API_URL}/admin/agents/${agentId}`, {
     method: 'PUT',
     headers: await getHeaders(),
     body: JSON.stringify(data),
@@ -19,26 +19,36 @@ export const updatePrompt = async (
   return await res.json();
 };
 
+export const chatTest = async (agentId: string, message: string, history: any[]) => {
+  const res = await fetch(`${API_URL}/admin/agents/chat`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify({ agentId, message, history }),
+  });
+  await handleResponse(res);
+  return await res.json();
+};
+
 export const getServices = async () => {
-  const res = await fetch(`${API_URL}/admin/services`, { headers: await getHeaders() });
+  const res = await fetch(`${API_URL}/admin/systemstatus/services`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
 
 export const getLogs = async () => {
-  const res = await fetch(`${API_URL}/admin/logs`, { headers: await getHeaders() });
+  const res = await fetch(`${API_URL}/admin/systemstatus/logs`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
 
 export const getLogLevel = async () => {
-  const res = await fetch(`${API_URL}/admin/loglevel`, { headers: await getHeaders() });
+  const res = await fetch(`${API_URL}/admin/systemstatus/loglevel`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
 
 export const setLogLevel = async (level: number) => {
-  const res = await fetch(`${API_URL}/admin/loglevel`, {
+  const res = await fetch(`${API_URL}/admin/systemstatus/loglevel`, {
     method: 'PUT',
     headers: await getHeaders(),
     body: JSON.stringify({ level }),
@@ -47,21 +57,26 @@ export const setLogLevel = async (level: number) => {
   return await res.json();
 };
 
-export const restart = async () => {
-  const res = await fetch(`${API_URL}/admin/restart`, {
-    method: 'POST',
-    headers: await getHeaders(),
-  });
+export const getRestartStatus = async () => {
+  const res = await fetch(`${API_URL}/admin/systemstatus/restart`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
 
-export const chatTest = async (agentId: string, message: string, history: any[]) => {
-  const res = await fetch(`${API_URL}/admin/chat_test`, {
-    method: 'POST',
-    headers: await getHeaders(),
-    body: JSON.stringify({ agentId, message, history }),
-  });
+export const getDatabaseDump = async () => {
+  const res = await fetch(`${API_URL}/admin/systemstatus/dump`, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const getActions = async () => {
+  const res = await fetch(`${API_URL}/admin/actions`, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const getActivity = async () => {
+  const res = await fetch(`${API_URL}/admin/actions/activity`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
@@ -102,23 +117,17 @@ export const deleteBadge = async (id: string) => {
 };
 
 export const getDebugSettings = async () => {
-  const res = await fetch(`${API_URL}/admin/settings/debug`, { headers: await getHeaders() });
+  const res = await fetch(`${API_URL}/admin/debug`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
 
 export const setDebugMode = async (enabled: boolean) => {
-  const res = await fetch(`${API_URL}/admin/settings/debug`, {
+  const res = await fetch(`${API_URL}/admin/debug`, {
     method: 'PUT',
     headers: await getHeaders(),
     body: JSON.stringify({ enabled }),
   });
-  await handleResponse(res);
-  return await res.json();
-};
-
-export const getSystemLogs = async () => {
-  const res = await fetch(`${API_URL}/admin/system_logs`, { headers: await getHeaders() });
   await handleResponse(res);
   return await res.json();
 };
@@ -164,5 +173,11 @@ export const resetUserPassword = async (id: string) => {
     headers: await getHeaders(),
   });
   if (!res.ok) throw new Error('Failed to reset password');
+  return await res.json();
+};
+
+export const getGuidedActions = async () => {
+  const res = await fetch(`${API_URL}/admin/guidedactions`, { headers: await getHeaders() });
+  await handleResponse(res);
   return await res.json();
 };

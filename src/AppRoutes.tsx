@@ -13,6 +13,13 @@ const ParentTopicDetail = lazy(() => import('./features/parent/ParentTopicDetail
 const AccountSettings = lazy(() => import('./features/account/AccountSettings'));
 const JoinFamily = lazy(() => import('./features/invite/JoinFamily'));
 const AdminDashboard = lazy(() => import('./features/admin/AdminDashboard'));
+const AdminAgents = lazy(() => import('./features/admin/AdminAgents'));
+const AdminActions = lazy(() => import('./features/admin/AdminActions'));
+const AdminSystemStatus = lazy(() => import('./features/admin/AdminSystemStatus'));
+const AdminBadges = lazy(() => import('./features/admin/AdminBadges'));
+const AdminUsers = lazy(() => import('./features/admin/AdminUsers'));
+const AdminDebug = lazy(() => import('./features/admin/AdminDebug'));
+const AdminGuidedActions = lazy(() => import('./features/admin/AdminGuidedActions'));
 const ProjectDetail = lazy(() => import('./features/projects/ProjectDetail'));
 const ForgotPasswordPage = lazy(() => import('./features/auth/ForgotPasswordPage'));
 const UpdatePasswordPage = lazy(() => import('./features/auth/UpdatePasswordPage'));
@@ -50,6 +57,13 @@ const AppRoutes = () => {
 
                 {/* Auth & Admin */}
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/agents" element={<AdminAgents />} />
+                <Route path="/admin/actions" element={<AdminActions />} />
+                <Route path="/admin/systemstatus" element={<AdminSystemStatus />} />
+                <Route path="/admin/badges" element={<AdminBadges />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/debug" element={<AdminDebug />} />
+                <Route path="/admin/guidedactions" element={<AdminGuidedActions />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/update-password" element={<UpdatePasswordPage />} />
 

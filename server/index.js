@@ -339,6 +339,41 @@ Return a valid JSON object with the following structure:
     }
 }
 
+async function seedAdminUser() {
+    const { prisma } = await import('./db.js');
+    
+    const adminEmail = 'thetboard@gmail.com';
+    
+    try {
+        const existing = await prisma.user.findUnique({
+            where: { email: adminEmail }
+        });
+        
+        if (!existing) {
+            await prisma.user.create({
+                data: {
+                    email: adminEmail,
+                    name: 'Thet Board',
+                    role: 'admin',
+                    plan: 'pro',
+                    password: null
+                }
+            });
+            console.log(`[Bootstrap] Seeded admin user: ${adminEmail}`);
+        } else if (existing.role !== 'admin') {
+            await prisma.user.update({
+                where: { email: adminEmail },
+                data: { role: 'admin', plan: 'pro' }
+            });
+            console.log(`[Bootstrap] Updated user ${adminEmail} to admin`);
+        } else {
+            console.log(`[Bootstrap] Admin user ${adminEmail} already exists`);
+        }
+    } catch (err) {
+        console.error('[Bootstrap] Error seeding admin user:', err);
+    }
+}
+
 async function seedSkillsAndTopics() {
     const { prisma } = await import('./db.js');
     
@@ -402,6 +437,7 @@ async function startServer() {
         console.log("[Bootstrap] Database connected");
         
         await seedPrompts();
+        await seedAdminUser();
         await seedSkillsAndTopics();
         await loadRoutes();
         app.use(express.static(path.join(__dirname, "public")));

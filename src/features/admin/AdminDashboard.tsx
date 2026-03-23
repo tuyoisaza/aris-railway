@@ -151,7 +151,7 @@ const AdminDashboard = () => {
 
         setIsRestarting(true);
         try {
-            const data = await api.admin.restart();
+            const data = await api.admin.getRestartStatus();
             if (data.success) {
                 alert(`Soft restart complete.\nDB Status: ${data.status.database}`);
                 fetchServices();
