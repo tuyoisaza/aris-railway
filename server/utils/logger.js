@@ -100,3 +100,4 @@ export const getRecent = (count = 100) => {
 export const getLevel = () => currentLevel;
 
 export { LEVELS, log, setLogLevel, getLogLevel };
+export { setLogLevel as setLevel, getLogLevel as getLevel };

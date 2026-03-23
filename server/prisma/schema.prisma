@@ -531,6 +531,7 @@ model Badge {
   name        String
   description String?
   icon        String?
+  xpReward    Int      @default(0)
   category    String?
   criteria    String?
   createdAt   DateTime @default(now())
