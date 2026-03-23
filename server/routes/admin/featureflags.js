@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const { scope } = req.query;
-        const where = scope ? { scope: scope as string } : {};
+        const where = scope ? { scope: String(scope) } : {};
         const flags = await prisma.featureFlag.findMany({ where });
         sendSuccess(res, flags);
     } catch (err) {
