@@ -629,6 +629,23 @@ model PresenceUpdate {
   @@map("presence_updates")
 }
 
+// ============ DEBUG SESSIONS TABLE ============
+
+model DebugSession {
+  id          String     @id @default(uuid())
+  userId      String
+  scope       String     @default("ADMIN")
+  enabled     Boolean    @default(true)
+  reason      String?
+  expiresAt   DateTime
+  activatedAt DateTime   @default(now())
+  metadata    String     @default("{}")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("debug_sessions")
+}
+
 // ============ FEATURE FLAGS TABLE ============
 
 model FeatureFlag {

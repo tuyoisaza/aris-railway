@@ -122,6 +122,41 @@ export const getDebugSettings = async () => {
   return await res.json();
 };
 
+export const activateDebug = async (scope: string = 'ADMIN', durationMinutes: number = 15, reason?: string) => {
+  const res = await fetch(`${API_URL}/admin/debug`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify({ scope, durationMinutes, reason }),
+  });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const deactivateDebug = async (sessionId?: string) => {
+  const res = await fetch(`${API_URL}/admin/debug`, {
+    method: 'DELETE',
+    headers: await getHeaders(),
+    body: JSON.stringify({ sessionId }),
+  });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const getDebugSessions = async () => {
+  const res = await fetch(`${API_URL}/admin/debug/sessions`, { headers: await getHeaders() });
+  await handleResponse(res);
+  return await res.json();
+};
+
+export const deleteDebugSession = async (sessionId: string) => {
+  const res = await fetch(`${API_URL}/admin/debug/sessions/${sessionId}`, {
+    method: 'DELETE',
+    headers: await getHeaders(),
+  });
+  await handleResponse(res);
+  return await res.json();
+};
+
 export const setDebugMode = async (enabled: boolean) => {
   const res = await fetch(`${API_URL}/admin/debug`, {
     method: 'PUT',

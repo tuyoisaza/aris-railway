@@ -6,6 +6,7 @@ import { createServer } from "http";
 import { connectDatabase, disconnectDatabase } from "./db.js";
 import { verifyToken } from "./prisma/auth.js";
 import { socketServer } from "./websocket/socketServer.js";
+import { debugMiddleware } from "./middleware/debugMiddleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,12 +34,14 @@ app.use((req, _res, next) => {
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Correlation-ID, X-Debug-Session');
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
     next();
 });
+
+app.use(debugMiddleware);
 
 app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });

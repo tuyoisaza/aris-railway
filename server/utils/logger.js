@@ -1,18 +1,29 @@
 
-// Logger Utility with Buffer and Level Control
+// Logger Utility with Buffer and Level Control with Debug Session Support
+
+import debugService from '../services/debug/DebugService.js';
 
 // Levels
 const LEVELS = {
     NONE: 0,
     ALERTS: 1, // ERROR, WARN only
     LOG: 2,    // INFO, WARN, ERROR
-    VERBOSE: 3 // DEBUG, INFO, WARN, ERROR
+    VERBOSE: 3, // DEBUG, INFO, WARN, ERROR
+    DEBUG: 4   // Full debug mode from DB
 };
 
 // State
 let currentLevel = LEVELS.VERBOSE;
 const MAX_LOGS = 1000;
 const logBuffer = [];
+
+let currentCorrelationId = null;
+
+const setCorrelationId = (id) => {
+    currentCorrelationId = id;
+};
+
+const getCorrelationId = () => currentCorrelationId;
 
 const setLogLevel = (level) => {
     // Map string input to number if needed
@@ -40,8 +51,20 @@ const addLog = (entry) => {
  * @param {string} severity - INFO, WARN, ERROR, DEBUG
  * @param {string} context - Sub-component or action
  * @param {string} message - The actual message
+ * @param {object} extra - Extra data for debug mode
  */
-const log = (module, severity, context, message) => {
+const log = async (module, severity, context, message, extra = null) => {
+    // Check if debug mode is active from DB
+    let isDebugActive = false;
+    try {
+        isDebugActive = await debugService.isDebugActive();
+    } catch (e) {
+        // Debug service might not be initialized yet
+    }
+
+    // If debug session active, force VERBOSE+ level
+    const effectiveLevel = isDebugActive ? LEVELS.DEBUG : currentLevel;
+
     const timestamp = new Date().toISOString();
 
     // Determine numeric severity for filtering
@@ -51,43 +74,38 @@ const log = (module, severity, context, message) => {
     if (s === 'INFO') severityLevel = 2;
     if (s === 'DEBUG') severityLevel = 3;
 
-    // Filter based on current setting
-    // Logic: If currentLevel is logs (2), we show 1 and 2.
-    // If currentLevel is alerts (1), we show 1.
-    // If currentLevel is none (0), we show nothing.
-    // Wait, the mapping above was: NO LOG=0, ALERTS=1 (shows error/warn), LOG=2 (shows info+), VERBOSE=3 (shows debug+)
-    // So we check if severityLevel <= currentLevel?
-    // ERROR(1) <= ALERTS(1)? Yes.
-    // INFO(2) <= ALERTS(1)? No.
-    // DEBUG(3) <= LOG(2)? No.
-    // Correct.
-
-    // Always console.log for server stdout irrespective of UI buffer setting?
-    // User asked "control amount of logging we want". 
-    // They probably mean in the UI AND console.
-    // But usually console is fine to be verbose. 
-    // I'll apply filtering to the BUFFER (UI) and Console.
-
-    if (currentLevel === 0) return; // NONE
+    if (effectiveLevel === 0) return; // NONE
 
     // Special Check: If filtering for ALERTS, only allow ERROR/WARN
     const isAlert = (s === 'ERROR' || s === 'WARN');
 
-    // Simple Numeric Check:
-    // If currentLevel == 1 (ALERTS), only show isAlert.
-    // if currentLevel == 2 (LOG), show INFO and ALERTS. (DEBUG is hidden)
-    // if currentLevel == 3 (VERBOSE), show ALL.
-
     let shouldLog = false;
-    if (currentLevel >= 3) shouldLog = true;
-    else if (currentLevel === 2 && (s === 'INFO' || isAlert)) shouldLog = true;
-    else if (currentLevel === 1 && isAlert) shouldLog = true;
+    if (effectiveLevel >= 4) shouldLog = true; // DEBUG mode - always log
+    else if (effectiveLevel >= 3) shouldLog = true;
+    else if (effectiveLevel === 2 && (s === 'INFO' || isAlert)) shouldLog = true;
+    else if (effectiveLevel === 1 && isAlert) shouldLog = true;
 
     if (shouldLog) {
-        const entry = { timestamp, module, severity, context, message };
+        const correlationPrefix = currentCorrelationId ? `[${currentCorrelationId.slice(0,8)}] ` : '';
+        const entry = { 
+            timestamp, 
+            module, 
+            severity, 
+            context, 
+            message, 
+            correlationId: currentCorrelationId,
+            isDebugSession: isDebugActive,
+            ...(extra || {})
+        };
         addLog(entry);
-        // Also print to stdout
-        console.log(`[${timestamp}] [${module}] [${severity}] [${context}] ${message}`);
+        
+        // Format output based on debug mode
+        let logMessage = message;
+        if (isDebugActive && extra) {
+            logMessage += ` ${JSON.stringify(extra)}`;
+        }
+        
+        console.log(`[${timestamp}]${correlationPrefix}[${module}] [${severity}] [${context}] ${logMessage}`);
     }
 };
 
@@ -99,4 +117,12 @@ export const getRecent = (count = 100) => {
 
 export const getLevel = () => currentLevel;
 
-export { LEVELS, log, setLogLevel, getLogLevel, setLogLevel as setLevel };
+export const isDebugSessionActive = async () => {
+    try {
+        return await debugService.isDebugActive();
+    } catch {
+        return false;
+    }
+};
+
+export { LEVELS, log, setLogLevel, getLogLevel, setLogLevel as setLevel, setCorrelationId, getCorrelationId };
