@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ConversationPage from './features/conversation/ConversationPage';
 import LearningMap from './features/learning-map/LearningMap';
 import TopicPage from './features/topic/TopicPage';
@@ -12,7 +12,7 @@ const ParentDashboard = lazy(() => import('./features/parent/ParentDashboard'));
 const ParentTopicDetail = lazy(() => import('./features/parent/ParentTopicDetail'));
 const AccountSettings = lazy(() => import('./features/account/AccountSettings'));
 const JoinFamily = lazy(() => import('./features/invite/JoinFamily'));
-const AdminDashboard = lazy(() => import('./features/admin/AdminDashboard'));
+const AdminLayout = lazy(() => import('./features/admin/AdminLayout'));
 const AdminAgents = lazy(() => import('./features/admin/components/AdminAgents'));
 const AdminActions = lazy(() => import('./features/admin/components/AdminActions'));
 const AdminSystemStatus = lazy(() => import('./features/admin/components/AdminSystemStatus'));
@@ -57,17 +57,19 @@ const AppRoutes = () => {
                 <Route path="/settings" element={<AccountSettings />} />
                 <Route path="/join/:token" element={<JoinFamily />} />
 
-                {/* Auth & Admin */}
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/agents" element={<AdminAgents />} />
-                <Route path="/admin/actions" element={<AdminActions />} />
-                <Route path="/admin/systemstatus" element={<AdminSystemStatus />} />
-                <Route path="/admin/badges" element={<AdminBadges />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/debug" element={<AdminDebug />} />
-                <Route path="/admin/guidedactions" element={<AdminGuidedActions />} />
-                <Route path="/admin/featureflags" element={<AdminFeatureFlags />} />
-                <Route path="/admin/audit" element={<AdminAuditLog />} />
+                {/* Admin Routes */}
+                <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<Navigate to="/admin/agents" replace />} />
+                    <Route path="agents" element={<AdminAgents />} />
+                    <Route path="actions" element={<AdminActions />} />
+                    <Route path="systemstatus" element={<AdminSystemStatus />} />
+                    <Route path="badges" element={<AdminBadges />} />
+                    <Route path="users" element={<AdminUsers />} />
+                    <Route path="debug" element={<AdminDebug />} />
+                    <Route path="guidedactions" element={<AdminGuidedActions />} />
+                    <Route path="featureflags" element={<AdminFeatureFlags />} />
+                    <Route path="audit" element={<AdminAuditLog />} />
+                </Route>
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/update-password" element={<UpdatePasswordPage />} />
 
