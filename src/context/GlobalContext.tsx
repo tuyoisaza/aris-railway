@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { StorageService } from '../services/storage';
 import { AIService } from '../services/ai';
 import { api } from '../services/api';
+import { clearTokenCache } from '../services/api/base-client';
 import i18n from '../i18n';
 import { parseV2Message, parseHistoryMessage } from '../utils/messageParser';
 
 const GlobalContext = createContext(null);
 
 // Load initial user from storage, but ONLY if we also have an access token
-const token = localStorage.getItem('access_token');
+const token = localStorage.getItem('aris_token');
 const loadedState = StorageService.loadState(null);
 const storedUser = (loadedState?.user && token) ? loadedState.user : null;
 
@@ -189,6 +190,8 @@ export const GlobalProvider = ({ children }) => {
     const logout = () => {
         setState(prev => ({ ...prev, user: null, messages: [] }));
         StorageService.clearState();
+        localStorage.removeItem('aris_token');
+        clearTokenCache();
     };
 
     const addMessage = (role, text, metadata = {}) => {
