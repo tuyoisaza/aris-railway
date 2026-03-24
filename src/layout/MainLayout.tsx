@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Users, Copy, Check } from 'lucide-react';
+import { Menu, X, Users, Copy, Check, LogIn } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useGlobal } from '../context/GlobalContext';
 import LanguageSelector from '../components/LanguageSelector';
@@ -7,6 +7,7 @@ import ProfileMenu from './ProfileMenu';
 import MenuOverlay from './MenuOverlay';
 import FamilyCollaboration from '../features/collaboration/FamilyCollaboration';
 import { useConsoleCapture } from '../hooks/useConsoleCapture';
+import LoginModal from '../features/auth/LoginModal';
 
 import { useTranslation } from 'react-i18next';
 
@@ -16,8 +17,9 @@ const MainLayout = ({ children }) => {
     const [isCollaborationOpen, setIsCollaborationOpen] = useState(false);
     const [version, setVersion] = useState('...');
     const [copied, setCopied] = useState(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
     const location = useLocation();
-    const { user, logout, family } = useGlobal();
+    const { user, logout, family, updateUser } = useGlobal();
     const { copyForSupport } = useConsoleCapture();
 
     useEffect(() => {
@@ -95,42 +97,74 @@ const MainLayout = ({ children }) => {
                 </button>
             </div>
             {/* Top Right Controls Container */}
-            <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 60, display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 60, display: 'flex', gap: '12px', alignItems: 'center' }}>
 
-                {family?.id && (
+                {!user ? (
                     <button
-                        onClick={() => setIsCollaborationOpen(true)}
+                        onClick={() => setShowLoginModal(true)}
                         style={{
-                            background: 'var(--color-primary-light)',
-                            border: '1px solid var(--color-primary)',
-                            color: 'var(--color-primary)',
-                            padding: '8px 16px',
+                            background: 'var(--color-primary)',
+                            border: 'none',
+                            color: 'white',
+                            padding: '10px 20px',
                             borderRadius: '12px',
                             cursor: 'pointer',
-                            fontSize: '13px',
+                            fontSize: '14px',
                             fontWeight: '600',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px',
-                            transition: 'all 0.2s ease'
+                            gap: '8px',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--color-primary)';
-                            e.currentTarget.style.color = 'white';
+                            e.currentTarget.style.background = '#ea580c';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'var(--color-primary-light)';
-                            e.currentTarget.style.color = 'var(--color-primary)';
+                            e.currentTarget.style.background = 'var(--color-primary)';
                         }}
                     >
-                        <Users size={16} />
-                        Collaborate
+                        <LogIn size={18} />
+                        Login
                     </button>
+                ) : (
+                    <>
+                        {family?.id && (
+                            <button
+                                onClick={() => setIsCollaborationOpen(true)}
+                                style={{
+                                    background: 'var(--color-primary-light)',
+                                    border: '1px solid var(--color-primary)',
+                                    color: 'var(--color-primary)',
+                                    padding: '8px 16px',
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'var(--color-primary)';
+                                    e.currentTarget.style.color = 'white';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'var(--color-primary-light)';
+                                    e.currentTarget.style.color = 'var(--color-primary)';
+                                }}
+                            >
+                                <Users size={16} />
+                                Collaborate
+                            </button>
+                        )}
+
+                        <LanguageSelector />
+
+                        <ProfileMenu user={user} logout={logout} t={t} />
+                    </>
                 )}
-
-                <LanguageSelector />
-
-                <ProfileMenu user={user} logout={logout} t={t} />
 
                 <button
                     onClick={toggleMenu}
@@ -146,6 +180,14 @@ const MainLayout = ({ children }) => {
                     {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
+
+            {/* Login Modal */}
+            <LoginModal
+                isOpen={showLoginModal}
+                onLogin={() => {
+                    setShowLoginModal(false);
+                }}
+            />
 
             <main style={{ width: '100%', height: '100%', overflowY: 'auto' }}>
                 {children}
