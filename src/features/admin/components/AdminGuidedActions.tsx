@@ -83,7 +83,7 @@ const AdminGuidedActions = () => {
                                                 <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono">
                                                     {action.entityType}
                                                 </span>
-                                                {action.entityId && (
+                                                {action.entityId && action.entityId.length > 8 && (
                                                     <span className="text-xs text-gray-400">
                                                         {action.entityId.substring(0, 8)}...
                                                     </span>
@@ -96,7 +96,7 @@ const AdminGuidedActions = () => {
                                 </td>
                                 <td className="px-5 py-4">
                                     <span className="text-sm text-gray-500 font-mono">
-                                        {action.userId ? action.userId.substring(0, 8) + '...' : '-'}
+                                        {action.userId && action.userId.length > 8 ? action.userId.substring(0, 8) + '...' : (action.userId || '-')}
                                     </span>
                                 </td>
                                 <td className="px-5 py-4">
