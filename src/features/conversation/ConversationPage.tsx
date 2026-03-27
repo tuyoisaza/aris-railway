@@ -162,11 +162,35 @@ const ConversationPage = () => {
         }
     };
 
-    const handleSend = (text: string) => {
+    const handleSend = (text: string, attachment?: File) => {
         setCircleState('thinking');
         websocketClient.sendTypingIndicator(true);
         
-        sendMessage(text).then(() => {
+        const sendWithAttachment = async () => {
+            if (attachment) {
+                const reader = new FileReader();
+                const base64 = await new Promise<string>((resolve) => {
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.readAsDataURL(attachment);
+                });
+                
+                const attachmentData = {
+                    name: attachment.name,
+                    type: attachment.type,
+                    data: (base64 as string).split(',')[1]
+                };
+                
+                await sendMessage(text, { attachment: attachmentData });
+            } else {
+                await sendMessage(text);
+            }
+        };
+        
+        sendWithAttachment().then(() => {
+            setCircleState('idle');
+            websocketClient.sendTypingIndicator(false);
+        }).catch((err) => {
+            console.error('Failed to send message:', err);
             setCircleState('idle');
             websocketClient.sendTypingIndicator(false);
         });

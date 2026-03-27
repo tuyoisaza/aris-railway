@@ -164,12 +164,17 @@ export const generateSummary = async (conversationIds: string[]) => {
   }
 };
 
-export const createMessage = async (conversationId: string, role: string, content: string) => {
+export const createMessage = async (
+  conversationId: string, 
+  role: string, 
+  content: string, 
+  attachment?: { name: string; type: string; data: string }
+) => {
   try {
     const res = await fetch(`${API_URL}/chat/message`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ conversationId, role, content }),
+      body: JSON.stringify({ conversationId, role, content, attachment }),
     });
     await handleResponse(res);
     return await unwrapResponse(res);

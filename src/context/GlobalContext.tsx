@@ -242,15 +242,11 @@ export const GlobalProvider = ({ children }) => {
         setLoadingConversation(false);
     };
 
-    const sendMessage = async (text) => {
-        addMessage('user', text);
+    const sendMessage = async (text, options?: { attachment?: { name: string; type: string; data: string } }) => {
+        addMessage('user', text, { attachment: options?.attachment });
 
         let conversationId = state.activeConversationId;
         let isNew = false;
-
-
-
-        // ... (existing code)
 
         // 1. Create Conversation if new
         if (!conversationId && state.user?.id) {
@@ -292,7 +288,7 @@ export const GlobalProvider = ({ children }) => {
                 console.log(`[Global] Sending message to conversation ${conversationId}:`, text);
 
                 // Send message to backend and await response (which includes AI reply)
-                const response = await api.createMessage(conversationId, 'user', text);
+                const response = await api.createMessage(conversationId, 'user', text, options?.attachment);
                 console.log("[Global] API Response for createMessage:", response);
 
                 if (response?.error) {
