@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Send, Paperclip, X, Image, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -12,6 +12,28 @@ const ChatInput = ({ onSend, onMicClick }) => {
     const [attachment, setAttachment] = useState<File | null>(null);
     const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (text.trim() || attachment) {
+                handleSubmit(e as any);
+            }
+        }
+    };
+
+    const adjustHeight = () => {
+        const textarea = inputRef.current;
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+    };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -159,20 +181,22 @@ const ChatInput = ({ onSend, onMicClick }) => {
 
                 <form onSubmit={handleSubmit} style={{
                     background: 'var(--color-surface)',
-                    borderRadius: '32px',
+                    borderRadius: '24px',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                     border: '1px solid var(--color-border)',
                     display: 'flex',
-                    alignItems: 'center',
-                    padding: '8px 8px 8px 20px',
+                    alignItems: 'flex-end',
+                    padding: '12px 16px 12px 20px',
                     gap: '12px',
                     color: 'var(--color-text)'
                 }}>
-                    <input
-                        type="text"
+                    <textarea
+                        ref={inputRef}
                         value={text}
-                        onChange={(e) => setText(e.target.value)}
+                        onChange={(e) => { setText(e.target.value); adjustHeight(); }}
+                        onKeyDown={handleKeyDown}
                         placeholder={t('inputPlaceholder')}
+                        rows={1}
                         style={{
                             flex: 1,
                             border: 'none',
@@ -180,7 +204,13 @@ const ChatInput = ({ onSend, onMicClick }) => {
                             fontSize: '16px',
                             fontFamily: 'inherit',
                             background: 'transparent',
-                            color: 'var(--color-text)'
+                            color: 'var(--color-text)',
+                            resize: 'none',
+                            minHeight: '24px',
+                            maxHeight: '150px',
+                            lineHeight: '24px',
+                            padding: '0',
+                            overflowY: 'auto'
                         }}
                     />
 
