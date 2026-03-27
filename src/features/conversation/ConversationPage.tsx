@@ -30,12 +30,12 @@ const ConversationPage = () => {
     const [speakingMessageIndex, setSpeakingMessageIndex] = useState<number | null>(null);
     const [liveTranscript, setLiveTranscript] = useState('');
     const [familyPresence, setFamilyPresence] = useState<{[key: string]: any}>({});
+    const [isLoadingChat, setIsLoadingChat] = useState(false);
 
     const recognitionRef = useRef<any>(null);
     const isSpeakingRef = useRef(false);
     const lastXpRef = useRef({});
     const hasSentInitialRef = useRef(false);
-    const isLoadingConversationRef = useRef(false);
     const { id: urlId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -62,10 +62,10 @@ const ConversationPage = () => {
     }, [addMessage]);
 
     useEffect(() => {
-        if (urlId && urlId !== activeConversationId && !isLoadingConversationRef.current) {
-            isLoadingConversationRef.current = true;
+        if (urlId && urlId !== activeConversationId) {
+            setIsLoadingChat(true);
             selectConversation(urlId).finally(() => {
-                isLoadingConversationRef.current = false;
+                setIsLoadingChat(false);
             });
         }
     }, [urlId, activeConversationId]);
@@ -242,7 +242,7 @@ const ConversationPage = () => {
                 paddingBottom: isFocusMode ? 0 : '100px',
                 paddingTop: '60px'
             }}>
-                {loadingConversation ? (
+                {isLoadingChat ? (
                     <div style={{
                         flex: 1,
                         display: 'flex',
