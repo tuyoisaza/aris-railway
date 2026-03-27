@@ -37,7 +37,8 @@ router.post('/', requireAuth, async (req, res, next) => {
 router.post('/:token/accept', requireAuth, async (req, res, next) => {
     try {
         const invite = await prisma.invitation.findUnique({
-            where: { token: req.params.token }
+            where: { token: req.params.token },
+            include: { family: true }
         });
 
         if (!invite || invite.status !== 'Pending') {
@@ -57,7 +58,7 @@ router.post('/:token/accept', requireAuth, async (req, res, next) => {
             data: { status: 'Accepted' }
         });
 
-        sendSuccess(res, { success: true });
+        sendSuccess(res, { success: true, familyName: invite.family.name });
     } catch (err) {
         next(err);
     }
