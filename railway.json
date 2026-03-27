@@ -11,7 +11,7 @@
     "restartPolicyMaxRetries": 10
   },
   "volumeMounts": {
-    "aris-data": {
+    "aris-railway-volume": {
       "mountPath": "/app/server/data",
       "description": "Persistent SQLite database storage"
     }
