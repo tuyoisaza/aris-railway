@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Shield, Bot, Zap, Server, Award, Users, Bug, Compass, Flag, FileText, Lock, AlertTriangle } from 'lucide-react';
-import { useGlobal } from '../../../context/GlobalContext';
+import { useGlobal } from '../../context/GlobalContext';
 
 const tabs = [
     { path: '/admin/agents', label: 'Agents', icon: Bot },
@@ -17,7 +16,6 @@ const tabs = [
 ];
 
 const AdminLayout = () => {
-    const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
     const { user } = useGlobal();
@@ -36,16 +34,43 @@ const AdminLayout = () => {
 
     if (!user) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Lock size={32} className="text-gray-400" />
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f5f5f5'
+            }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        background: '#e5e7eb',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px'
+                    }}>
+                        <Lock size={32} color="#9ca3af" />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-                    <p className="text-gray-500">Please log in to access the admin dashboard</p>
+                    <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
+                        Authentication Required
+                    </h2>
+                    <p style={{ color: '#6b7280', marginBottom: '16px' }}>
+                        Please log in to access the admin dashboard
+                    </p>
                     <button
                         onClick={() => navigate('/?login_required=admin')}
-                        className="mt-4 px-6 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                        style={{
+                            padding: '10px 24px',
+                            background: '#F97316',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                        }}
                     >
                         Log In
                     </button>
@@ -56,22 +81,46 @@ const AdminLayout = () => {
 
     if (user.role !== 'admin' && user.plan !== 'pro') {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center max-w-md">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <AlertTriangle size={32} className="text-red-500" />
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f5f5f5'
+            }}>
+                <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        background: '#fee2e2',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px'
+                    }}>
+                        <AlertTriangle size={32} color="#ef4444" />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-                    <p className="text-gray-500 mb-4">
+                    <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
+                        Access Denied
+                    </h2>
+                    <p style={{ color: '#6b7280', marginBottom: '8px' }}>
                         You don't have permission to access the admin dashboard.
-                        Admin access requires the <strong>admin</strong> role or <strong>pro</strong> plan.
                     </p>
-                    <p className="text-sm text-gray-400 mb-4">
-                        Current role: {user.role} | Current plan: {user.plan}
+                    <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px' }}>
+                        Requires <strong>admin</strong> role or <strong>pro</strong> plan.
                     </p>
                     <button
                         onClick={() => navigate('/')}
-                        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                        style={{
+                            padding: '10px 24px',
+                            background: '#e5e7eb',
+                            color: '#374151',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                        }}
                     >
                         Go Home
                     </button>
@@ -81,39 +130,55 @@ const AdminLayout = () => {
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+        <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+            {/* Header */}
             <div style={{
-                borderBottom: '1px solid var(--color-border)',
-                background: 'white',
-                padding: '0 24px'
+                borderBottom: '1px solid #e5e7eb',
+                background: '#fff',
+                padding: '0 40px'
             }}>
                 <div style={{
                     display: 'flex',
-                    alignItems: 'center',
                     justifyContent: 'space-between',
-                    height: '60px',
+                    alignItems: 'center',
                     maxWidth: '1400px',
-                    margin: '0 auto'
+                    margin: '0 auto',
+                    height: '70px'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <Shield size={24} color="var(--color-primary)" />
-                        <h1 style={{ fontSize: '20px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                            Admin Dashboard
-                        </h1>
+                        <Shield size={24} color="#F97316" />
+                        <div>
+                            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#111827' }}>
+                                Agent Brain Console
+                            </h1>
+                            <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                                Manage system prompts and services.
+                            </p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{
+                            padding: '4px 12px',
+                            background: user.role === 'admin' ? '#f3e8ff' : '#fff7ed',
+                            color: user.role === 'admin' ? '#7c3aed' : '#c2410c',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '600'
+                        }}>
                             {user.role === 'admin' ? 'Admin' : 'Pro'}
                         </span>
-                        <span>{user.email}</span>
+                        <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                            {user.email}
+                        </span>
                     </div>
                 </div>
+
+                {/* Tab Bar */}
                 <div style={{
                     display: 'flex',
                     gap: '4px',
                     maxWidth: '1400px',
                     margin: '0 auto',
-                    overflowX: 'auto',
                     paddingBottom: '8px'
                 }}>
                     {tabs.map(tab => {
@@ -131,10 +196,10 @@ const AdminLayout = () => {
                                     borderRadius: '8px',
                                     textDecoration: 'none',
                                     fontSize: '13px',
-                                    fontWeight: '500',
-                                    color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                                    background: isActive ? 'var(--color-primary-light)' : 'transparent',
-                                    whiteSpace: 'nowrap',
+                                    fontWeight: '600',
+                                    color: isActive ? '#F97316' : '#6b7280',
+                                    background: isActive ? '#fff7ed' : 'transparent',
+                                    border: isActive ? '1px solid #fed7aa' : '1px solid transparent',
                                     transition: 'all 0.15s ease'
                                 }}
                             >
@@ -145,7 +210,13 @@ const AdminLayout = () => {
                     })}
                 </div>
             </div>
-            <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+
+            {/* Content */}
+            <div style={{
+                maxWidth: '1400px',
+                margin: '0 auto',
+                padding: '24px 40px'
+            }}>
                 <Outlet />
             </div>
         </div>

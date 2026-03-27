@@ -41,8 +41,9 @@ const AdminActions = () => {
     const fetchActions = async () => {
         setLoading(true);
         try {
-            const data = await api.admin.getActions?.() || [];
-            setActions(data);
+            const response = await api.admin.getActions();
+            const actionData = response?.data || response || [];
+            setActions(actionData);
         } catch (err) {
             console.error('[Admin/Actions] Error fetching actions:', err);
             setActions([]);
