@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
-import { Rocket, Medal, Clock, AlertCircle } from 'lucide-react';
+import { Rocket, Medal, Clock, AlertCircle, Users } from 'lucide-react';
 
 const ActivityFeed = ({ familyId }) => {
     const [activities, setActivities] = useState([]);
@@ -13,9 +13,16 @@ const ActivityFeed = ({ familyId }) => {
             setLoading(true);
             try {
                 const data = await api.getFamilyActivity(familyId);
-                setActivities(data || []);
+                if (data && data.recentEvents) {
+                    setActivities(data.recentEvents);
+                } else if (Array.isArray(data)) {
+                    setActivities(data);
+                } else {
+                    setActivities([]);
+                }
             } catch (error) {
                 console.error("Failed to fetch activity:", error);
+                setActivities([]);
             } finally {
                 setLoading(false);
             }
@@ -26,26 +33,45 @@ const ActivityFeed = ({ familyId }) => {
 
     if (loading) return <div style={{ fontSize: '13px', color: 'var(--color-text-tertiary)', padding: '20px', textAlign: 'center' }}>Loading activity...</div>;
 
-    if (activities.length === 0) {
+    if (!activities || activities.length === 0) {
         return (
             <div style={{ textAlign: 'center', padding: '30px', color: 'var(--color-text-tertiary)' }}>
                 <Clock size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
                 <div style={{ fontSize: '13px' }}>No recent activity.</div>
+                <div style={{ fontSize: '11px', marginTop: '4px' }}>Start a conversation to see activity here.</div>
             </div>
         );
     }
 
+    const getIcon = (type) => {
+        switch (type) {
+            case 'project': return <Rocket size={14} color="var(--color-primary)" />;
+            case 'badge': return <Medal size={14} color="#F59E0B" />;
+            case 'member': return <Users size={14} color="#8b5cf6" />;
+            default: return <Clock size={14} color="var(--color-text-tertiary)" />;
+        }
+    };
+
+    const getBorderColor = (type) => {
+        switch (type) {
+            case 'project': return 'var(--color-primary)';
+            case 'badge': return '#F59E0B';
+            case 'member': return '#8b5cf6';
+            default: return 'var(--color-border)';
+        }
+    };
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {activities.map((item, index) => (
-                <div key={index} style={{
+                <div key={item.id || index} style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '12px',
                     padding: '12px',
                     borderRadius: '8px',
                     background: 'var(--color-bg-secondary)',
-                    borderLeft: item.type === 'project' ? '3px solid var(--color-primary)' : '3px solid #F59E0B'
+                    borderLeft: `3px solid ${getBorderColor(item.type)}`
                 }}>
                     <div style={{
                         marginTop: '2px',
@@ -55,21 +81,18 @@ const ActivityFeed = ({ familyId }) => {
                         display: 'flex',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
-                        {item.type === 'project' && <Rocket size={14} color="var(--color-primary)" />}
-                        {item.type === 'badge' && <Medal size={14} color="#F59E0B" />}
+                        {getIcon(item.type)}
                     </div>
 
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: '600' }}>{item.title}</span>
+                            <span style={{ fontSize: '14px', fontWeight: '600' }}>{item.title || item.action || 'Activity'}</span>
                             <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                                {new Date(item.date).toLocaleDateString()}
+                                {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
                             </span>
                         </div>
                         <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
-                            <span style={{ fontWeight: '500', color: 'var(--color-text)' }}>{item.user}</span>
-                            {item.type === 'project' && <> started a new project.</>}
-                            {item.type === 'badge' && <> earned a new badge.</>}
+                            {item.description || item.message || ''}
                         </div>
                     </div>
                 </div>
