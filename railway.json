@@ -11,9 +11,9 @@
     "restartPolicyMaxRetries": 10
   },
   "volumeMounts": {
-    "data": {
+    "aris-data": {
       "mountPath": "/app/server/data",
-      "description": "SQLite database persistence"
+      "description": "Persistent SQLite database storage"
     }
   }
 }

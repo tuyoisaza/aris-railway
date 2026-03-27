@@ -54,8 +54,8 @@ COPY --from=builder /app/VERSION ./VERSION
 COPY --from=prisma /app/server/node_modules/.prisma ./node_modules/.prisma
 
 ENV NODE_ENV=production
-ENV DATABASE_URL="file:/app/server/data/aris.db"
+ENV DATABASE_URL=${DATABASE_URL:-file:/app/server/data/aris.db}
 
-RUN mkdir -p /app/server/data
+RUN mkdir -p /app/server/data && chmod 777 /app/server/data
 
 ENTRYPOINT ["sh", "-c", "npx prisma@5.22.0 db push --accept-data-loss && node index.js"]
