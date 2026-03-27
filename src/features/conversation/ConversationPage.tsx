@@ -35,6 +35,7 @@ const ConversationPage = () => {
     const isSpeakingRef = useRef(false);
     const lastXpRef = useRef({});
     const hasSentInitialRef = useRef(false);
+    const isLoadingConversationRef = useRef(false);
     const { id: urlId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -61,8 +62,11 @@ const ConversationPage = () => {
     }, [addMessage]);
 
     useEffect(() => {
-        if (urlId && urlId !== activeConversationId) {
-            selectConversation(urlId);
+        if (urlId && urlId !== activeConversationId && !isLoadingConversationRef.current) {
+            isLoadingConversationRef.current = true;
+            selectConversation(urlId).finally(() => {
+                isLoadingConversationRef.current = false;
+            });
         }
     }, [urlId, activeConversationId]);
 

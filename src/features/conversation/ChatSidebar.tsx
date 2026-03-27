@@ -73,7 +73,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, onNewChat })
                 prev.includes(chat.id) ? prev.filter(id => id !== chat.id) : [...prev, chat.id]
             );
         } else {
-            selectConversation(chat.id);
             navigate(`/conversation/${chat.id}`);
             onClose();
         }

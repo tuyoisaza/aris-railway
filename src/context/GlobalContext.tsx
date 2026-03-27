@@ -202,8 +202,8 @@ export const GlobalProvider = ({ children }) => {
     };
 
     const selectConversation = async (id) => {
+        setState(prev => ({ ...prev, activeConversationId: id, messages: [] }));
         setLoadingConversation(true);
-        setState(prev => ({ ...prev, activeConversationId: id, messages: [] })); // Clear messages first
 
         let chat = state.savedChats.find(c => c.id === id);
 
@@ -220,6 +220,8 @@ export const GlobalProvider = ({ children }) => {
                 }
             } catch (e) {
                 console.error("[Global] Failed to fetch conversation:", e);
+                setLoadingConversation(false);
+                return;
             }
         }
 
