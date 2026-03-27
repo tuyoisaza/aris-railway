@@ -163,6 +163,11 @@ const ConversationPage = () => {
     };
 
     const handleSend = (text: string, attachment?: File) => {
+        if (!user?.id) {
+            alert('Please log in to send messages');
+            return;
+        }
+        
         setCircleState('thinking');
         websocketClient.sendTypingIndicator(true);
         
