@@ -12,6 +12,7 @@ interface ChatListItemProps {
     handleDeleteChat: (chat: any, e: any) => void;
     handleRenameClick: (chat: any) => void;
     handleArchiveChat: (chat: any, e: any) => void;
+    isArchivedView?: boolean;
 }
 
 const menuItemStyle: React.CSSProperties = {

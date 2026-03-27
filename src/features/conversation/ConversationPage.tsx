@@ -64,13 +64,13 @@ const ConversationPage = () => {
         if (urlId && urlId !== activeConversationId) {
             selectConversation(urlId);
         }
-    }, [urlId, activeConversationId, selectConversation]);
+    }, [urlId, activeConversationId]);
 
     useEffect(() => {
         if (activeConversationId && (!urlId || urlId !== activeConversationId)) {
             navigate(`/conversation/${activeConversationId}`, { replace: true });
         }
-    }, [activeConversationId, urlId, navigate]);
+    }, [activeConversationId, urlId]);
 
     useEffect(() => {
         return () => {

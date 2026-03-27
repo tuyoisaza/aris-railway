@@ -33,6 +33,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, onNewChat })
     const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
+    const [isCreatingFolderInProgress, setIsCreatingFolderInProgress] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [chatToMove, setChatToMove] = useState<any>(null);
     const [moveTargetIds, setMoveTargetIds] = useState<string[]>([]);
@@ -119,10 +120,18 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, onNewChat })
     };
 
     const handleCreateFolderSubmit = async (e: React.KeyboardEvent) => {
+        e.preventDefault();
+        if (isCreatingFolderInProgress) return;
+        
         if (e.key === 'Enter' && newFolderName.trim()) {
-            await createFolder(newFolderName.trim());
-            setNewFolderName('');
-            setIsCreatingFolder(false);
+            setIsCreatingFolderInProgress(true);
+            try {
+                await createFolder(newFolderName.trim());
+            } finally {
+                setNewFolderName('');
+                setIsCreatingFolder(false);
+                setIsCreatingFolderInProgress(false);
+            }
         } else if (e.key === 'Escape') {
             setIsCreatingFolder(false);
             setNewFolderName('');
