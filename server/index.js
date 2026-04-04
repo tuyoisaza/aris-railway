@@ -93,7 +93,8 @@ app.get("/health", async (_req, res) => {
             recentMessages,
             activityLogs,
             userTopicProgress,
-            skillProgress
+            skillProgress,
+            systemPrompts
         ] = await Promise.all([
             db.user.count(),
             db.user.count({ where: { role: 'admin' } }),
