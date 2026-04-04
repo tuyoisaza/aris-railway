@@ -110,7 +110,8 @@ router.post('/message', requireAuth, validate(schemas.message), async (req, res,
             data: {
                 conversationId,
                 role: 'user',
-                content
+                content,
+                authorId: userId
             }
         });
 
