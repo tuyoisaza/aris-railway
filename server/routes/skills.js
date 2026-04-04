@@ -46,7 +46,7 @@ router.post('/', requireAuth, async (req, res, next) => {
         const { title, category, description } = req.body;
         
         let skill = await prisma.skill.findFirst({
-            where: { title: { mode: 'insensitive', equals: title } }
+            where: { title: { equals: title } }
         });
 
         if (!skill) {
@@ -68,7 +68,7 @@ router.post('/', requireAuth, async (req, res, next) => {
     } catch (err) {
         if (err.code === 'P2002') {
             const existing = await prisma.skill.findFirst({
-                where: { title: { mode: 'insensitive', equals: req.body.title } }
+                where: { title: { equals: req.body.title } }
             });
             if (existing) {
                 return sendSuccess(res, { skill: existing, message: 'Skill already exists' });
