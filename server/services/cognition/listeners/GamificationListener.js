@@ -4,7 +4,9 @@ import { prisma } from '../../../db.js';
 
 class GamificationListener {
     constructor() {
+        console.log('[GamificationListener] Initializing...');
         this.setupListeners();
+        console.log('[GamificationListener] Listeners ready');
     }
 
     setupListeners() {

@@ -4,7 +4,9 @@ import jobQueue from '../../jobQueue.js';
 
 class CognitionListener {
     constructor() {
+        console.log('[CognitionListener] Initializing...');
         this.setupListeners();
+        console.log('[CognitionListener] Listeners ready');
     }
 
     setupListeners() {

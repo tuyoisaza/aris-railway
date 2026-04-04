@@ -314,6 +314,11 @@ console.log(`  - NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`  - PORT: ${process.env.PORT}`);
 
 async function loadRoutes() {
+    // Import cognition listeners to register them with EventManager
+    await import('./services/cognition/listeners/CognitionListener.js');
+    await import('./services/cognition/listeners/GamificationListener.js');
+    await import('./services/cognition/listeners/ExperienceListener.js');
+
     const { default: authRoutes } = await import('./routes/auth.js');
     const { default: chatRoutes } = await import('./routes/chat.js');
     const { default: topicsRoutes } = await import('./routes/topics.js');
