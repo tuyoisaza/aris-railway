@@ -1,8 +1,8 @@
 # ARIS Project Context
 
-**Last Updated**: 2026-03-23
-**Current Version**: 0.0.33
-**Status**: Active development complete - All IA Standards features implemented
+**Last Updated**: 2026-04-04
+**Current Version**: 0.0.107
+**Status**: All systems operational - Badge system working
 
 ## Commit Message Convention
 
@@ -13,7 +13,7 @@ v0.0.X: <description>
 
 Example:
 ```
-v0.0.30: Fix WebSocket import - use singleton instance instead of class
+v0.0.107: Remove debug logging from listeners
 ```
 
 ## Deployment
@@ -24,35 +24,52 @@ v0.0.30: Fix WebSocket import - use singleton instance instead of class
 | Railway | https://aris-railway-production.up.railway.app |
 | GitHub | https://github.com/tuyoisaza/aris-railway |
 
+## Current Stats
+
+- **Users**: 2
+- **Conversations**: 12
+- **Messages**: 74
+- **Badges**: 4 total, 2 earned
+
 ## Recent Changes
 
-### v0.0.33
-- Audit trail system: LOGIN_SUCCESS, LOGIN_FAILURE, SIGNUP events tracked
+### v0.0.107 (2026-04-04)
+- Remove debug logging from listeners
 
-### v0.0.32
-- Debug report copy function in admin panel
+### v0.0.106 (2026-04-04)
+- Fix TableQuery - convert camelCase to snake_case for Prisma
 
-### v0.0.31
-- Enable audit trail system
+### v0.0.105 (2026-04-04)
+- Fix BadgeService Prisma field names (snake_case to camelCase)
 
-### v0.0.30
-- Fix WebSocket import - use singleton instance instead of class
+### v0.0.104 (2026-04-04)
+- Fix socketServer import path in ExperienceListener
 
-### v0.0.29
-- Enable WebSocket server for real-time collaboration
+### v0.0.102 (2026-04-04)
+- Set authorId on user messages for badge tracking
 
-### v0.0.28
-- Add missing API methods to ApiClient class
-- Fixes 'createConversation is not a function' error
+### v0.0.101 (2026-04-04)
+- Emit AI_RESPONSE_COMPLETED event from chat.js for badge/milestone processing
 
-### v0.0.27
-- API method fixes
+## Event System
+
+The Cognition/Gamification event system is now fully operational:
+- **EventManager**: Central event emitter in `server/services/cognition/EventManager.js`
+- **CognitionListener**: Handles milestones and proposals from AI responses
+- **GamificationListener**: Evaluates and awards badges
+- **ExperienceListener**: Handles XP awards
+
+Events flow:
+1. User sends chat message → `chat.js`
+2. AI responds → `TeacherAgent`
+3. Message saved → `EventManager.emitEvent('AI_RESPONSE_COMPLETED')`
+4. Listeners process → badges evaluated, milestones checked
 
 ## Known Issues
 
-1. **Custom domain routing**: Some API routes may fall through to frontend on custom domain
-2. **Google OAuth**: Disabled on login page ("coming soon")
-3. **Stripe**: Disabled (stubbed)
+1. **Google OAuth**: Disabled on login page ("coming soon")
+2. **Stripe**: Disabled (stubbed)
+3. **GitHub Actions Railway deploy**: Failing (token issue) - Railway auto-deploys on push anyway
 
 ## Environment Variables (Railway)
 
@@ -72,10 +89,23 @@ NODE_ENV=production
 
 - **Frontend**: React 19, Vite, TypeScript, Framer Motion
 - **Backend**: Express.js, Prisma 5.22.0, SQLite
-- **AI**: OpenAI API
-- **Deployment**: Railway (monocontainer)
+- **AI**: OpenAI API (GPT-4o, GPT-4o-mini)
+- **Deployment**: Railway (monocontainer with volume)
 - **Auth**: JWT (custom implementation)
 - **Real-time**: WebSocket (ws library)
+
+## AI Agents
+
+1. **TeacherAgent** - Main conversation agent
+2. **CartographerAgent** - Topic mapping/structuring
+3. **CartographerRelationships** - Relationship mapping
+4. **LibrarianAgent** - Content enrichment
+5. **ScoutAgent** - Research agent
+6. **ThothAgent** - Organization agent
+7. **DaedalusAgent** - Project architecture
+8. **OgmaAgent** - Memory keeper
+9. **LughAgent** - Skill curriculum
+10. **SkillAgent** - Skill classification
 
 ## Support Copy Feature
 
