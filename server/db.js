@@ -81,8 +81,37 @@ class TableQuery {
     }
 
     select(columns = '*') {
-        this._select = columns;
+        if (columns && typeof columns === 'object' && columns.count) {
+            this._count = columns.count;
+            this._countHead = columns.head || false;
+            this._select = '*';
+        } else {
+            this._select = columns;
+            this._count = false;
+            this._countHead = false;
+        }
         return this;
+    }
+
+    async count() {
+        const where = { ...this._where };
+        Object.assign(where, this._whereNot);
+        Object.assign(where, this._whereIn);
+
+        const model = tableToModel(this.table);
+
+        if (!prisma[model] && !prisma[this.table]) {
+            return { count: 0, error: null };
+        }
+
+        try {
+            const target = prisma[model] || prisma[this.table];
+            const count = await target.count({ where });
+            return { count, error: null };
+        } catch (err) {
+            console.error(`[Prisma] ${this.table} count:`, err.message);
+            return { count: 0, error: { message: err.message } };
+        }
     }
 
     eq(column, value) {
@@ -102,6 +131,15 @@ class TableQuery {
 
     is(column, value) {
         this._where[column] = value;
+        return this;
+    }
+
+    match(conditions) {
+        if (conditions && typeof conditions === 'object') {
+            Object.entries(conditions).forEach(([key, value]) => {
+                this.eq(key, value);
+            });
+        }
         return this;
     }
 
@@ -139,6 +177,17 @@ class TableQuery {
 
         if (!prisma[model] && !prisma[tableName]) {
             return { data: [], error: null };
+        }
+
+        if (this._countHead) {
+            try {
+                const target = prisma[model] || prisma[tableName];
+                const count = await target.count({ where });
+                return { data: null, count, error: null };
+            } catch (err) {
+                console.error(`[Prisma] ${this.table} count:`, err.message);
+                return { data: null, count: 0, error: { message: err.message } };
+            }
         }
 
         const args = { where };
