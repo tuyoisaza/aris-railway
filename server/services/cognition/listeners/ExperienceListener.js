@@ -1,6 +1,6 @@
 import EventManager from '../EventManager.js';
 import SkillService from '../../SkillService.js';
-import { socketServer } from '../../websocket/socketServer.js';
+import { socketServer } from '../../../websocket/socketServer.js';
 import { prisma } from '../../../db.js';
 
 class ExperienceListener {
