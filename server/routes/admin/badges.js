@@ -23,7 +23,6 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
         
         const badge = await prisma.badge.create({
             data: {
-                id: `badge-${Date.now()}`,
                 name,
                 description: description || '',
                 icon: icon || '🏆',
