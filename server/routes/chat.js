@@ -3,6 +3,7 @@ import { prisma } from '../db.js';
 import { requireAuth, validate, sendError, sendSuccess } from '../middleware.js';
 import { schemas } from '../middleware.js';
 import TeacherAgent from '../services/ai/agents/TeacherAgent.js';
+import EventManager from '../services/cognition/EventManager.js';
 
 const router = express.Router();
 
@@ -138,6 +139,13 @@ router.post('/message', requireAuth, validate(schemas.message), async (req, res,
                 role: 'ai',
                 content: JSON.stringify(aiResponse)
             }
+        });
+
+        EventManager.emitEvent(EventManager.EVENTS.AI_RESPONSE_COMPLETED, {
+            userId,
+            conversationId,
+            userContent: content,
+            aiResponse
         });
 
         sendSuccess(res, {
