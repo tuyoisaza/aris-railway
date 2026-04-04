@@ -138,7 +138,8 @@ app.get("/health", async (_req, res) => {
             db.message.count({ where: { createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } } }),
             db.activityLog.count(),
             db.userTopicProgress.count(),
-            db.userSkillProgress.aggregate({ _avg: { level: true, xp: true } })
+            db.userSkillProgress.aggregate({ _avg: { level: true, xp: true } }),
+            db.systemPrompt.findMany({ select: { agentId: true, name: true, model: true, temperature: true, active: true } })
         ]);
 
         const projectsStats = projectsByStatus.reduce((acc, p) => {
@@ -266,7 +267,18 @@ app.get("/health", async (_req, res) => {
                     enabled: enabledFeatureFlags,
                     disabled: totalFeatureFlags - enabledFeatureFlags
                 },
-                presence: presenceStats
+                presence: presenceStats,
+                systemPrompts: {
+                    total: systemPrompts.length,
+                    active: systemPrompts.filter(p => p.active).length,
+                    agents: systemPrompts.map(p => ({
+                        id: p.agentId,
+                        name: p.name,
+                        model: p.model,
+                        temperature: p.temperature,
+                        active: p.active
+                    }))
+                }
             }
         });
     } catch (error) {
