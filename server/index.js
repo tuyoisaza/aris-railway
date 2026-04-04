@@ -58,11 +58,14 @@ app.get("/health", async (_req, res) => {
             totalConversations,
             archivedConversations,
             totalMessages,
+            messagesByRole,
             totalFolders,
             totalTopics,
             topicsWithResources,
+            topicsWithEngagement,
             totalResources,
             projectsByStatus,
+            projectsWithArtifacts,
             totalSkills,
             userSkillProgress,
             totalBadges,
@@ -70,18 +73,27 @@ app.get("/health", async (_req, res) => {
             uniqueBadgeUsers,
             totalXpNotifications,
             unreadXpNotifications,
+            totalXpEarned,
             totalCollaborativeSessions,
             activeSessions,
+            totalSessionParticipants,
             totalSharedEntities,
             totalInvitations,
             pendingInvitations,
+            acceptedInvitations,
             totalActions,
             actionsByType,
             totalAuditLogs,
             auditByType,
             totalFeatureFlags,
             enabledFeatureFlags,
-            presenceByStatus
+            presenceByStatus,
+            recentUsers,
+            recentConversations,
+            recentMessages,
+            activityLogs,
+            userTopicProgress,
+            skillProgress
         ] = await Promise.all([
             db.user.count(),
             db.user.count({ where: { role: 'admin' } }),
@@ -91,11 +103,14 @@ app.get("/health", async (_req, res) => {
             db.conversation.count(),
             db.conversation.count({ where: { isArchived: true } }),
             db.message.count(),
+            db.message.groupBy({ by: ['role'], _count: true }),
             db.folder.count(),
             db.topic.count(),
             db.topic.count({ where: { resources: { some: {} } } }),
+            db.topic.aggregate({ _avg: { engagement: true } }),
             db.resource.count(),
             db.project.groupBy({ by: ['status'], _count: true }),
+            db.project.count({ where: { artifacts: { some: {} } } }),
             db.skill.count(),
             db.userSkillProgress.count(),
             db.badge.count(),
@@ -103,18 +118,27 @@ app.get("/health", async (_req, res) => {
             db.userBadge.groupBy({ by: ['userId'] }),
             db.xpNotification.count(),
             db.xpNotification.count({ where: { read: false } }),
+            db.xpNotification.aggregate({ _sum: { xpAmount: true } }),
             db.collaborativeSession.count(),
             db.collaborativeSession.count({ where: { isActive: true } }),
+            db.sessionParticipant.count(),
             db.sharedEntity.count(),
             db.invitation.count(),
             db.invitation.count({ where: { status: 'Pending' } }),
+            db.invitation.count({ where: { status: 'Accepted' } }),
             db.action.count(),
             db.action.groupBy({ by: ['type'], _count: true }),
             db.auditLog.count(),
             db.auditLog.groupBy({ by: ['action'], _count: true }),
             db.featureFlag.count(),
             db.featureFlag.count({ where: { enabled: true } }),
-            db.userPresence.groupBy({ by: ['status'], _count: true })
+            db.userPresence.groupBy({ by: ['status'], _count: true }),
+            db.user.count({ where: { createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } } }),
+            db.conversation.count({ where: { createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } } }),
+            db.message.count({ where: { createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } } }),
+            db.activityLog.count(),
+            db.userTopicProgress.count(),
+            db.userSkillProgress.aggregate({ _avg: { level: true, xp: true } })
         ]);
 
         const projectsStats = projectsByStatus.reduce((acc, p) => {
@@ -138,8 +162,17 @@ app.get("/health", async (_req, res) => {
             return acc;
         }, {});
 
+        const messagesByRoleStats = messagesByRole.reduce((acc, m) => {
+            acc[m.role] = m._count;
+            return acc;
+        }, {});
+
         const avgMessagesPerConversation = totalConversations > 0 
             ? Math.round((totalMessages / totalConversations) * 10) / 10 
+            : 0;
+
+        const avgMembersPerFamily = totalFamilies > 0 
+            ? Math.round((totalMembers / totalFamilies) * 10) / 10 
             : 0;
 
         console.log(`[Health] OK - ${totalUsers} users, ${totalConversations} convs, ${totalMessages} msgs, ${totalActions} actions (${Date.now() - startTime}ms)`);
@@ -155,33 +188,44 @@ app.get("/health", async (_req, res) => {
                     total: totalUsers,
                     admins: adminUsers,
                     regular: totalUsers - adminUsers,
-                    withFamily: usersWithFamily.length
+                    withFamily: usersWithFamily.length,
+                    newToday: recentUsers
                 },
                 families: {
                     total: totalFamilies,
-                    totalMembers: totalMembers
+                    totalMembers: totalMembers,
+                    avgMembersPerFamily
                 },
                 conversations: {
                     total: totalConversations,
                     archived: archivedConversations,
                     active: totalConversations - archivedConversations,
                     messages: totalMessages,
-                    avgMessagesPerConversation
+                    messagesByRole: messagesByRoleStats,
+                    avgMessagesPerConversation,
+                    newToday: recentConversations
                 },
                 folders: {
                     total: totalFolders
                 },
                 topics: {
                     total: totalTopics,
-                    withResources: topicsWithResources
+                    withResources: topicsWithResources,
+                    avgEngagement: topicsWithEngagement?._avg?.engagement ? Math.round(topicsWithEngagement._avg.engagement * 10) / 10 : 0,
+                    progress: userTopicProgress
                 },
                 resources: {
                     total: totalResources
                 },
-                projects: projectsStats,
+                projects: {
+                    ...projectsStats,
+                    withArtifacts: projectsWithArtifacts
+                },
                 skills: {
                     total: totalSkills,
-                    trackedByUsers: userSkillProgress
+                    trackedByUsers: userSkillProgress,
+                    avgLevel: skillProgress?._avg?.level ? Math.round(skillProgress._avg.level * 10) / 10 : 0,
+                    avgXp: skillProgress?._avg?.xp ? Math.round(skillProgress._avg.xp) : 0
                 },
                 badges: {
                     total: totalBadges,
@@ -190,11 +234,13 @@ app.get("/health", async (_req, res) => {
                 },
                 xpNotifications: {
                     total: totalXpNotifications,
-                    unread: unreadXpNotifications
+                    unread: unreadXpNotifications,
+                    totalXpEarned: totalXpEarned?._sum?.xpAmount || 0
                 },
                 collaborativeSessions: {
                     total: totalCollaborativeSessions,
-                    active: activeSessions
+                    active: activeSessions,
+                    totalParticipants: totalSessionParticipants
                 },
                 sharedEntities: {
                     total: totalSharedEntities
@@ -202,7 +248,7 @@ app.get("/health", async (_req, res) => {
                 invitations: {
                     total: totalInvitations,
                     pending: pendingInvitations,
-                    accepted: totalInvitations - pendingInvitations
+                    accepted: acceptedInvitations
                 },
                 actions: {
                     total: totalActions,
@@ -211,6 +257,9 @@ app.get("/health", async (_req, res) => {
                 auditLogs: {
                     total: totalAuditLogs,
                     byAction: auditStats
+                },
+                activityLogs: {
+                    total: activityLogs
                 },
                 featureFlags: {
                     total: totalFeatureFlags,
