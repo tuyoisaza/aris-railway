@@ -29,6 +29,24 @@ router.put('/avatar', requireAuth, async (req, res, next) => {
     }
 });
 
+router.put('/role', requireAuth, async (req, res, next) => {
+    try {
+        const { role, plan } = req.body;
+        const updateData = {};
+        if (role !== undefined) updateData.role = role;
+        if (plan !== undefined) updateData.plan = plan;
+        
+        const user = await prisma.user.update({
+            where: { id: req.user.id },
+            data: updateData,
+            select: { id: true, email: true, name: true, role: true, plan: true }
+        });
+        sendSuccess(res, user);
+    } catch (err) {
+        next(err);
+    }
+});
+
 router.get('/:id', requireAuth, async (req, res, next) => {
     try {
         const user = await prisma.user.findUnique({
