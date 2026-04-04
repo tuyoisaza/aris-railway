@@ -65,9 +65,9 @@ export const GlobalProvider = ({ children }) => {
     // --- DATA FETCHING ---
 
     // Actual implementation of the function above to be replaced with full body:
-    const refreshData = useCallback(async () => {
-        // Capture userId from current render scope (safe because it's in deps)
-        const userId = state.user?.id;
+    const refreshData = useCallback(async (userIdOverride?: string) => {
+        // Use provided userId or fall back to state
+        const userId = userIdOverride || state.user?.id;
         if (!userId) return;
 
         console.log("[Global] Refreshing Data. User:", userId);
@@ -157,7 +157,8 @@ export const GlobalProvider = ({ children }) => {
                 if (session?.user) {
                     if (!state.user || state.user.id !== session.user.id) {
                         setState(prev => ({ ...prev, user: { ...prev.user, ...session.user } }));
-                        refreshData();
+                        // Pass userId directly to avoid race condition with setState
+                        refreshData(session.user.id);
                     }
                 }
             } else if (event === 'SIGNED_OUT') {
@@ -169,7 +170,8 @@ export const GlobalProvider = ({ children }) => {
         const { data: sessionData } = api.getSession();
         if (sessionData.session && sessionData.user) {
             setState(prev => ({ ...prev, user: sessionData.user }));
-            refreshData();
+            // Pass userId directly to avoid race condition with setState
+            refreshData(sessionData.user.id);
         }
 
         return () => {
