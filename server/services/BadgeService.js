@@ -25,24 +25,24 @@ class BadgeService {
             const { data: userConversations } = await supabaseAdmin
                 .from('conversations')
                 .select('id')
-                .eq('user_id', userId);
+                .eq('userId', userId);
 
             const convCount = userConversations?.length || 0;
 
             const { data: userMessages } = await supabaseAdmin
                 .from('messages')
                 .select('id')
-                .eq('author_id', userId);
+                .eq('authorId', userId);
 
             const msgCount = userMessages?.length || 0;
 
             // 3. Get existing user badges
             const { data: userBadges } = await supabaseAdmin
                 .from('user_badges')
-                .select('badge_id')
-                .eq('user_id', userId);
+                .select('badgeId')
+                .eq('userId', userId);
 
-            const earnedBadgeIds = new Set((userBadges || []).map(ub => ub.badge_id));
+            const earnedBadgeIds = new Set((userBadges || []).map(ub => ub.badgeId));
 
             // 4. Evaluate each badge
             const alerts = [];
@@ -123,8 +123,8 @@ class BadgeService {
                     await supabaseAdmin
                         .from('user_badges')
                         .insert({
-                            user_id: userId,
-                            badge_id: badge.id,
+                            userId: userId,
+                            badgeId: badge.id,
                             metadata: JSON.stringify({ awardedAt: new Date().toISOString() })
                         });
 
@@ -155,8 +155,8 @@ class BadgeService {
             await supabaseAdmin
                 .from('user_badges')
                 .insert({
-                    user_id: userId,
-                    badge_id: badgeId,
+                    userId: userId,
+                    badgeId: badgeId,
                     metadata: JSON.stringify({ awardedAt: new Date().toISOString() })
                 });
             return true;
@@ -175,11 +175,11 @@ class BadgeService {
             const { data: userBadges, error } = await supabaseAdmin
                 .from('user_badges')
                 .select('*')
-                .eq('user_id', userId);
+                .eq('userId', userId);
 
             if (error) throw error;
 
-            const badgeIds = (userBadges || []).map(ub => ub.badge_id);
+            const badgeIds = (userBadges || []).map(ub => ub.badgeId);
 
             if (badgeIds.length === 0) return [];
 
@@ -191,7 +191,7 @@ class BadgeService {
             if (badgeError) throw badgeError;
 
             return (userBadges || []).map(ub => {
-                const badge = badges?.find(b => b.id === ub.badge_id);
+                const badge = badges?.find(b => b.id === ub.badgeId);
                 return {
                     ...badge,
                     earnedAt: ub.earnedAt,
@@ -212,10 +212,10 @@ class BadgeService {
         try {
             const { data: userBadges } = await supabaseAdmin
                 .from('user_badges')
-                .select('badge_id')
-                .eq('user_id', userId);
+                .select('badgeId')
+                .eq('userId', userId);
 
-            const earnedBadgeIds = (userBadges || []).map(ub => ub.badge_id);
+            const earnedBadgeIds = (userBadges || []).map(ub => ub.badgeId);
 
             const { data: allBadges, error } = await supabaseAdmin
                 .from('badges')
