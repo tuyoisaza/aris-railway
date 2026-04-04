@@ -142,6 +142,8 @@ app.get("/health", async (_req, res) => {
             ? Math.round((totalMessages / totalConversations) * 10) / 10 
             : 0;
 
+        console.log(`[Health] OK - ${totalUsers} users, ${totalConversations} convs, ${totalMessages} msgs, ${totalActions} actions (${Date.now() - startTime}ms)`);
+
         res.status(200).json({
             status: "ok",
             timestamp: new Date().toISOString(),
@@ -219,7 +221,7 @@ app.get("/health", async (_req, res) => {
             }
         });
     } catch (error) {
-        console.error('[Health] Error:', error);
+        console.error('[Health] Error:', error.message, { stack: error.stack });
         res.status(500).json({
             status: "error",
             timestamp: new Date().toISOString(),
