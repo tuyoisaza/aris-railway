@@ -43,8 +43,190 @@ app.use((req, res, next) => {
 
 app.use(debugMiddleware);
 
-app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/health", async (_req, res) => {
+    const { prisma } = await import('./db.js');
+    const db = prisma;
+    const startTime = Date.now();
+
+    try {
+        const [
+            totalUsers,
+            adminUsers,
+            usersWithFamily,
+            totalFamilies,
+            totalMembers,
+            totalConversations,
+            archivedConversations,
+            totalMessages,
+            totalFolders,
+            totalTopics,
+            topicsWithResources,
+            totalResources,
+            projectsByStatus,
+            totalSkills,
+            userSkillProgress,
+            totalBadges,
+            earnedBadges,
+            uniqueBadgeUsers,
+            totalXpNotifications,
+            unreadXpNotifications,
+            totalCollaborativeSessions,
+            activeSessions,
+            totalSharedEntities,
+            totalInvitations,
+            pendingInvitations,
+            totalActions,
+            actionsByType,
+            totalAuditLogs,
+            auditByType,
+            totalFeatureFlags,
+            enabledFeatureFlags,
+            presenceByStatus
+        ] = await Promise.all([
+            db.user.count(),
+            db.user.count({ where: { role: 'admin' } }),
+            db.familyMember.groupBy({ by: ['userId'] }),
+            db.family.count(),
+            db.familyMember.count(),
+            db.conversation.count(),
+            db.conversation.count({ where: { isArchived: true } }),
+            db.message.count(),
+            db.folder.count(),
+            db.topic.count(),
+            db.topic.count({ where: { resources: { some: {} } } }),
+            db.resource.count(),
+            db.project.groupBy({ by: ['status'], _count: true }),
+            db.skill.count(),
+            db.userSkillProgress.count(),
+            db.badge.count(),
+            db.userBadge.count(),
+            db.userBadge.groupBy({ by: ['userId'] }),
+            db.xpNotification.count(),
+            db.xpNotification.count({ where: { read: false } }),
+            db.collaborativeSession.count(),
+            db.collaborativeSession.count({ where: { isActive: true } }),
+            db.sharedEntity.count(),
+            db.invitation.count(),
+            db.invitation.count({ where: { status: 'Pending' } }),
+            db.action.count(),
+            db.action.groupBy({ by: ['type'], _count: true }),
+            db.auditLog.count(),
+            db.auditLog.groupBy({ by: ['action'], _count: true }),
+            db.featureFlag.count(),
+            db.featureFlag.count({ where: { enabled: true } }),
+            db.userPresence.groupBy({ by: ['status'], _count: true })
+        ]);
+
+        const projectsStats = projectsByStatus.reduce((acc, p) => {
+            acc[p.status] = p._count;
+            acc.total = (acc.total || 0) + p._count;
+            return acc;
+        }, { total: 0 });
+
+        const actionsStats = actionsByType.reduce((acc, a) => {
+            acc[a.type] = a._count;
+            return acc;
+        }, {});
+
+        const auditStats = auditByType.reduce((acc, a) => {
+            acc[a.action] = a._count;
+            return acc;
+        }, {});
+
+        const presenceStats = presenceByStatus.reduce((acc, p) => {
+            acc[p.status] = p._count;
+            return acc;
+        }, {});
+
+        const avgMessagesPerConversation = totalConversations > 0 
+            ? Math.round((totalMessages / totalConversations) * 10) / 10 
+            : 0;
+
+        res.status(200).json({
+            status: "ok",
+            timestamp: new Date().toISOString(),
+            uptime: Math.floor(process.uptime()),
+            responseTime: Date.now() - startTime,
+            database: "connected",
+            stats: {
+                users: {
+                    total: totalUsers,
+                    admins: adminUsers,
+                    regular: totalUsers - adminUsers,
+                    withFamily: usersWithFamily.length
+                },
+                families: {
+                    total: totalFamilies,
+                    totalMembers: totalMembers
+                },
+                conversations: {
+                    total: totalConversations,
+                    archived: archivedConversations,
+                    active: totalConversations - archivedConversations,
+                    messages: totalMessages,
+                    avgMessagesPerConversation
+                },
+                folders: {
+                    total: totalFolders
+                },
+                topics: {
+                    total: totalTopics,
+                    withResources: topicsWithResources
+                },
+                resources: {
+                    total: totalResources
+                },
+                projects: projectsStats,
+                skills: {
+                    total: totalSkills,
+                    trackedByUsers: userSkillProgress
+                },
+                badges: {
+                    total: totalBadges,
+                    earned: earnedBadges,
+                    uniqueUsersWithBadges: uniqueBadgeUsers.length
+                },
+                xpNotifications: {
+                    total: totalXpNotifications,
+                    unread: unreadXpNotifications
+                },
+                collaborativeSessions: {
+                    total: totalCollaborativeSessions,
+                    active: activeSessions
+                },
+                sharedEntities: {
+                    total: totalSharedEntities
+                },
+                invitations: {
+                    total: totalInvitations,
+                    pending: pendingInvitations,
+                    accepted: totalInvitations - pendingInvitations
+                },
+                actions: {
+                    total: totalActions,
+                    byType: actionsStats
+                },
+                auditLogs: {
+                    total: totalAuditLogs,
+                    byAction: auditStats
+                },
+                featureFlags: {
+                    total: totalFeatureFlags,
+                    enabled: enabledFeatureFlags,
+                    disabled: totalFeatureFlags - enabledFeatureFlags
+                },
+                presence: presenceStats
+            }
+        });
+    } catch (error) {
+        console.error('[Health] Error:', error);
+        res.status(500).json({
+            status: "error",
+            timestamp: new Date().toISOString(),
+            database: "disconnected",
+            error: error.message
+        });
+    }
 });
 
 console.log("[Bootstrap] Environment Diagnostics:");
