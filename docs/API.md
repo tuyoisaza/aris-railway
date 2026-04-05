@@ -1071,3 +1071,47 @@ The token is obtained from `/api/auth/login` or `/api/auth/signup`.
 Admin endpoints require either:
 - `role: "admin"` OR
 - `plan: "pro"`
+
+---
+
+## Web Research
+
+### POST /api/research/research
+
+Perform web research on a topic and get a summarized response with sources.
+
+**Authentication**: Required
+
+**Request Body**:
+```json
+{
+  "query": "quantum computing basics"
+}
+```
+
+**Response** (200):
+```json
+{
+  "success": true,
+  "data": {
+    "query": "quantum computing basics",
+    "summary": "Quantum computing is an advanced computational paradigm...",
+    "sources": [
+      {
+        "title": "Quantum computing",
+        "url": "https://en.wikipedia.org/wiki/Quantum_computing",
+        "snippet": "A quantum computer is a computer that exploits..."
+      }
+    ]
+  }
+}
+```
+
+### GET /api/research/search?q=query
+
+Same as POST, but uses query parameter.
+
+**Authentication**: Required
+
+**Query Parameters**:
+- `q` (required): Search query
