@@ -2,6 +2,7 @@ class WebResearchService {
     constructor() {
         this.exaApiKey = process.env.EXA_API_KEY;
         this.exaBaseUrl = 'https://api.exa.ai';
+        this.ddgBaseUrl = 'https://api.duckduckgo.com';
     }
 
     async search(query, options = {}) {
@@ -11,7 +12,7 @@ class WebResearchService {
             return this.searchWithExa(query, maxResults);
         }
         
-        return this.searchWithOpenAI(query, maxResults);
+        return this.searchWithDuckDuckGo(query, maxResults);
     }
 
     async searchWithExa(query, maxResults) {
@@ -49,35 +50,41 @@ class WebResearchService {
         }
     }
 
-    async searchWithOpenAI(query, maxResults) {
+    async searchWithDuckDuckGo(query, maxResults) {
         try {
-            const response = await fetch('https://api.openai.com/v1/responses', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    input: `Search the web for: ${query}. Return a JSON array with search results containing: title, url, snippet, and source.`,
-                    tools: [{ type: 'web_search_preview' }]
-                })
-            });
-
+            const encodedQuery = encodeURIComponent(query);
+            const response = await fetch(`${this.ddgBaseUrl}/?q=${encodedQuery}&format=json&no_redirect=1`);
+            
             if (!response.ok) {
-                throw new Error(`OpenAI search error: ${response.status}`);
+                throw new Error(`DuckDuckGo API error: ${response.status}`);
             }
 
             const data = await response.json();
-            const webResults = data.output?.[0]?.content?.[0]?.text || '[]';
-            
-            try {
-                return { results: JSON.parse(webResults), query };
-            } catch {
-                return { results: [], query, raw: webResults };
+            const results = [];
+
+            if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                for (const topic of data.RelatedTopics.slice(0, maxResults)) {
+                    if (topic.Text) {
+                        results.push({
+                            title: topic.Text.substring(0, 100),
+                            url: topic.FirstURL || '',
+                            snippet: topic.Text
+                        });
+                    }
+                }
             }
+
+            if (data.AbstractText) {
+                results.unshift({
+                    title: data.Heading || query,
+                    url: data.AbstractURL || '',
+                    snippet: data.AbstractText
+                });
+            }
+
+            return { results, query, total: results.length };
         } catch (err) {
-            console.error('[WebResearch] OpenAI search error:', err);
+            console.error('[WebResearch] DuckDuckGo search error:', err);
             return { results: [], query, error: err.message };
         }
     }

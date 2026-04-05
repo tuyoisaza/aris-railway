@@ -104,6 +104,7 @@ Return JSON array of resources.`;
 
     async saveToMemory(userId, query, researchResult) {
         try {
+            const traitKey = `research_${Date.now()}`;
             const memoryEntry = {
                 type: 'web_research',
                 query: query,
@@ -115,13 +116,9 @@ Return JSON array of resources.`;
             await prisma.agoraUserMemory.create({
                 data: {
                     userId: userId,
-                    traitType: 'web_research',
-                    traitName: query.substring(0, 100),
+                    traitKey: traitKey,
                     traitValue: JSON.stringify(memoryEntry),
-                    metadata: JSON.stringify({
-                        source: 'web_search',
-                        resultCount: researchResult.sources?.length || 0
-                    })
+                    confidence: 0.8
                 }
             });
 
