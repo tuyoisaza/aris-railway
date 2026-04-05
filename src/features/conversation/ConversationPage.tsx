@@ -17,6 +17,7 @@ import LoginModal from '../auth/LoginModal';
 import ConversationHeader from './components/ConversationHeader';
 import MessageList from './components/MessageList';
 import InitialState from './components/InitialState';
+import GuidedActionCard from '../guided-actions/GuidedActionCard';
 
 const ConversationPage = () => {
     const { t } = useTranslation();
@@ -31,6 +32,11 @@ const ConversationPage = () => {
     const [liveTranscript, setLiveTranscript] = useState('');
     const [familyPresence, setFamilyPresence] = useState<{[key: string]: any}>({});
     const [isLoadingChat, setIsLoadingChat] = useState(false);
+    const [guidedAction, setGuidedAction] = useState<{
+        type: 'topic' | 'project' | 'skill' | 'conversation';
+        payload: any;
+        intent: string;
+    } | null>(null);
 
     const recognitionRef = useRef<any>(null);
     const isSpeakingRef = useRef(false);
@@ -55,6 +61,11 @@ const ConversationPage = () => {
                     reason: data.reason,
                     userId: data.userId
                 });
+            }),
+            websocketClient.subscribe('GUIDED_ACTION_SUGGESTED', (data) => {
+                if (data?.action) {
+                    setGuidedAction(data.action);
+                }
             }),
             websocketClient.subscribe('error', () => setCircleState('idle'))
         ];
@@ -215,6 +226,45 @@ const ConversationPage = () => {
         setShowPinModal(false);
     };
 
+    const handleGuidedActionExecute = (result: any) => {
+        setGuidedAction(null);
+        if (result?.success) {
+            const actionType = guidedAction?.type;
+            let message = '';
+            
+            switch (actionType) {
+                case 'topic':
+                    message = `📚 Created topic: ${result.topic?.title || 'New Topic'}`;
+                    if (result.url) {
+                        addMessage('system', message, { type: 'action_completed', url: result.url });
+                    }
+                    break;
+                case 'project':
+                    message = `🛠️ Created project: ${result.project?.title || 'New Project'}`;
+                    if (result.url) {
+                        addMessage('system', message, { type: 'action_completed', url: result.url });
+                    }
+                    break;
+                case 'skill':
+                    message = `⭐ Created skill: ${result.skill?.title || 'New Skill'}`;
+                    if (result.url) {
+                        addMessage('system', message, { type: 'action_completed', url: result.url });
+                    }
+                    break;
+                case 'conversation':
+                    message = `💬 Created conversation: ${result.conversation?.title || 'New Conversation'}`;
+                    if (result.url) {
+                        window.location.href = result.url;
+                    }
+                    break;
+            }
+            
+            if (message) {
+                addMessage('system', message);
+            }
+        }
+    };
+
     return (
         <>
             <ConversationHeader
@@ -301,6 +351,14 @@ const ConversationPage = () => {
                     />
                     <ChatInput onSend={handleSend} onMicClick={handleCircleInteraction} />
                 </>
+            )}
+
+            {guidedAction && (
+                <GuidedActionCard
+                    action={guidedAction}
+                    onDismiss={() => setGuidedAction(null)}
+                    onExecute={handleGuidedActionExecute}
+                />
             )}
         </>
     );
