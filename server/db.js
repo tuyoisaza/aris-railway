@@ -168,25 +168,9 @@ class TableQuery {
     }
 
     async _execute() {
-        const camelToSnake = (str) => str.replace(/([A-Z])/g, '_$1').toLowerCase();
-        
-        const convertObj = (obj) => {
-            if (!obj) return obj;
-            const result = {};
-            for (const [key, value] of Object.entries(obj)) {
-                const snakeKey = camelToSnake(key);
-                if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-                    result[snakeKey] = convertObj(value);
-                } else {
-                    result[snakeKey] = value;
-                }
-            }
-            return result;
-        };
-
-        const where = convertObj({ ...this._where });
-        Object.assign(where, convertObj(this._whereNot));
-        Object.assign(where, convertObj(this._whereIn));
+        const where = { ...this._where };
+        Object.assign(where, this._whereNot);
+        Object.assign(where, this._whereIn);
 
         const model = tableToModel(this.table);
         const tableName = this.table;
