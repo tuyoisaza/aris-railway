@@ -10,7 +10,8 @@ class EventManager extends EventEmitter {
             CONVERSATION_STARTED: 'CONVERSATION_STARTED',
             TOPIC_CREATED: 'TOPIC_CREATED',
             TOPIC_REVISITED: 'TOPIC_REVISITED',
-            XP_AWARDED: 'XP_AWARDED'
+            XP_AWARDED: 'XP_AWARDED',
+            GUIDED_ACTION_SUGGESTED: 'GUIDED_ACTION_SUGGESTED'
         };
     }
 

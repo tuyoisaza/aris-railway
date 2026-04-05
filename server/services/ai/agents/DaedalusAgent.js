@@ -1,12 +1,8 @@
 import BaseAgent from './BaseAgent.js';
 
-export class DaedalusAgent extends BaseAgent {
+class DaedalusAgent extends BaseAgent {
     constructor() {
-        super({
-            name: 'Daedalus',
-            role: 'The Project Architect',
-            description: 'Designs exciting, achievable projects that turn curiosity into action.'
-        });
+        super('daedalus');
     }
 
     getSystemPrompt() {
@@ -167,15 +163,11 @@ If their idea is too big, scope it down while keeping the excitement.
                 { role: 'user', content: userMessage }
             ];
 
-            const response = await this.provider.chat(messages, {
-                temperature: 0.8,
-                jsonMode: true
-            });
-
-            return JSON.parse(response);
+            const rawResponse = await this.chat(messages, { temperature: 0.8 });
+            return await this.parse(rawResponse);
         } catch (error) {
             console.error('Daedalus Error:', error);
-            throw new Error('Failed to architect project: ' + error.message);
+            return null;
         }
     }
 
@@ -197,15 +189,11 @@ If their idea is too big, scope it down while keeping the excitement.
                 { role: 'user', content: userMessage }
             ];
 
-            const response = await this.provider.chat(messages, {
-                temperature: 0.8,
-                jsonMode: true
-            });
-
-            return JSON.parse(response);
+            const rawResponse = await this.chat(messages, { temperature: 0.8 });
+            return await this.parse(rawResponse);
         } catch (error) {
             console.error('Daedalus Error:', error);
-            throw new Error('Failed to architect project.');
+            return null;
         }
     }
 
@@ -225,7 +213,7 @@ If their idea is too big, scope it down while keeping the excitement.
             Description: ${description}
 
             LEARNER CONTEXT (AGORA):
-            ${agoraContext}
+            ${agoraContext || 'No additional context available'}
 
             Based on the learner's context and their intent, create an exciting, achievable project.
             If they are a beginner, keep it simple. If they have specific interests in Agora, incorporate them.
@@ -237,33 +225,13 @@ If their idea is too big, scope it down while keeping the excitement.
                 { role: 'user', content: userMessage }
             ];
 
-            const response = await this.provider.chat(messages, {
-                temperature: 0.8,
-                jsonMode: true
-            });
+            const rawResponse = await this.chat(messages, { temperature: 0.8 });
+            const architecture = await this.parse(rawResponse);
 
-            const architecture = JSON.parse(response);
-
-            // Create Project in DB
-            const { data: project, error } = await supabaseAdmin
-                .from('projects')
-                .insert([{
-                    user_id: userId,
-                    title: architecture.project.name || title,
-                    intent: description,
-                    status: 'idea',
-                    why_i_care: architecture.project.origin,
-                    artifacts: [architecture] // Store the full blueprint as an artifact
-                }])
-                .select()
-                .single();
-
-            if (error) throw error;
-            return project;
-
+            return architecture;
         } catch (error) {
             console.error('[Daedalus] Architect Error:', error);
-            throw new Error('Failed to architect project.');
+            return null;
         }
     }
 }

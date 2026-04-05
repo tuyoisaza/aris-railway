@@ -1,7 +1,8 @@
 import EventManager from '../EventManager.js';
 import { prisma } from '../../../db.js';
 import jobQueue from '../../jobQueue.js';
-import ActionRegistry from '../../ActionRegistry.js';
+
+const GUIDED_ACTION_TYPES = ['topic', 'project', 'skill', 'conversation'];
 
 class CognitionListener {
     constructor() {
@@ -29,6 +30,13 @@ class CognitionListener {
             const isResearch = aiResponse.action && aiResponse.action.type === 'research';
             if (isResearch) {
                 await this.handleResearch(userId, conversationId, aiResponse);
+            }
+
+            const isGuidedAction = aiResponse.action && 
+                                   aiResponse.action.type && 
+                                   GUIDED_ACTION_TYPES.includes(aiResponse.action.type);
+            if (isGuidedAction) {
+                await this.handleGuidedAction(userId, conversationId, aiResponse);
             }
         } catch (err) {
             console.error('[CognitionListener] Error processing cognitive artifacts:', err);
@@ -113,37 +121,55 @@ class CognitionListener {
             userId,
             query: researchQuery
         });
+    }
 
-        const result = await ActionRegistry.execute('research:web', userId, {
-            query: researchQuery,
-            conversationId
-        });
+    async handleGuidedAction(userId, conversationId, aiResponse) {
+        console.log(`[CognitionListener] Processing Guided Action: ${aiResponse.action.type}`);
 
-        const resultPayload = {
-            type: 'research_result',
-            query: researchQuery,
-            summary: result.summary,
-            sources: result.sources
+        const actionType = aiResponse.action.type;
+        const payload = aiResponse.action.payload || {};
+        const intent = aiResponse.intent || userContent || '';
+
+        const guidedPayload = {
+            type: `guided_${actionType}`,
+            actionType: actionType,
+            payload: payload,
+            intent: intent,
+            display: `Would you like to ${actionType}: ${payload.title || payload.name || 'this'}?`
         };
 
         await prisma.message.create({
             data: {
                 conversationId,
                 role: 'system',
-                content: JSON.stringify(resultPayload)
+                content: JSON.stringify(guidedPayload)
             }
         });
 
-        const sourcesText = result.sources?.length > 0
-            ? `\n\n**Sources:**\n${result.sources.slice(0, 3).map((s, i) => `${i + 1}. [${s.title}](${s.url})`).join('\n')}`
-            : '';
+        const actionMessages = {
+            topic: "I've noticed you're interested in exploring a new topic! Would you like to create a topic to organize your learning about this?",
+            project: "This sounds like a great project idea! Want to turn this into an actual project you can build?",
+            skill: "This looks like something you could practice as a skill! Want to track your progress as you learn?",
+            conversation: "Ready to start fresh on a new subject? I can create a new conversation for you."
+        };
+
+        const displayMessage = actionMessages[actionType] || `Would you like to start a ${actionType}?`;
 
         await prisma.message.create({
             data: {
                 conversationId,
                 role: 'ai',
-                content: `I did some research on "${researchQuery}" and found:\n\n${result.summary}${sourcesText}`
+                content: displayMessage
             }
+        });
+
+        EventManager.emitEvent(EventManager.EVENTS.GUIDED_ACTION_SUGGESTED, {
+            userId,
+            conversationId,
+            actionType,
+            payload,
+            intent,
+            displayMessage
         });
     }
 }

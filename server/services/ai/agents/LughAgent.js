@@ -2,10 +2,7 @@ import BaseAgent from './BaseAgent.js';
 
 class LughAgent extends BaseAgent {
   constructor() {
-    super({
-      temperature: 0.7,
-      model: "gpt-4-turbo" // High capability needed for structured curriculum
-    });
+    super('lugh');
   }
 
   async generateCurriculum(skillName, context = '') {
@@ -70,16 +67,14 @@ Asegúrate de que los 10 niveles sigan esta progresión:
     ];
 
     try {
-      const config = { ...this.config, jsonMode: true };
-      const responseJson = await this.provider.chat(messages, config);
-      const result = JSON.parse(responseJson);
+      const rawResponse = await this.chat(messages, { temperature: 0.7 });
+      const result = await this.parse(rawResponse);
 
       console.log(`[Lugh] ✨ Curriculum generated for ${skillName}`);
       return result;
     } catch (error) {
       console.error('[Lugh] Error generating curriculum:', error);
-      // Return null or throw to let service handle it
-      throw error;
+      return null;
     }
   }
 }
