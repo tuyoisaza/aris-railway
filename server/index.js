@@ -685,11 +685,46 @@ async function seedSkillsAndTopics() {
     }
 }
 
+async function backfillMessageAuthorIds() {
+    try {
+        const messagesWithoutAuthor = await prisma.message.findMany({
+            where: {
+                role: 'user',
+                authorId: null
+            },
+            include: {
+                conversation: true
+            }
+        });
+
+        if (messagesWithoutAuthor.length === 0) {
+            console.log('[Bootstrap] No messages to backfill');
+            return;
+        }
+
+        console.log(`[Bootstrap] Backfilling ${messagesWithoutAuthor.length} messages with authorId...`);
+
+        for (const msg of messagesWithoutAuthor) {
+            if (msg.conversation?.userId) {
+                await prisma.message.update({
+                    where: { id: msg.id },
+                    data: { authorId: msg.conversation.userId }
+                });
+            }
+        }
+
+        console.log('[Bootstrap] Message authorId backfill complete');
+    } catch (err) {
+        console.error('[Bootstrap] Error backfilling message authorIds:', err);
+    }
+}
+
 async function startServer() {
     try {
         await connectDatabase();
         console.log("[Bootstrap] Database connected");
         
+        await backfillMessageAuthorIds();
         await seedPrompts();
         await seedAdminUser();
         await seedSkillsAndTopics();
