@@ -36,6 +36,7 @@ const ConversationPage = () => {
     const isSpeakingRef = useRef(false);
     const lastXpRef = useRef({});
     const hasSentInitialRef = useRef(false);
+    const isSwitchingConversation = useRef(false);
     const { id: urlId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -62,16 +63,18 @@ const ConversationPage = () => {
     }, [addMessage]);
 
     useEffect(() => {
-        if (urlId && urlId !== activeConversationId) {
+        if (urlId && urlId !== activeConversationId && !isSwitchingConversation.current) {
+            isSwitchingConversation.current = true;
             setIsLoadingChat(true);
             selectConversation(urlId).finally(() => {
                 setIsLoadingChat(false);
+                isSwitchingConversation.current = false;
             });
         }
     }, [urlId, activeConversationId]);
 
     useEffect(() => {
-        if (activeConversationId && (!urlId || urlId !== activeConversationId)) {
+        if (activeConversationId && (!urlId || urlId !== activeConversationId) && !isSwitchingConversation.current) {
             navigate(`/conversation/${activeConversationId}`, { replace: true });
         }
     }, [activeConversationId, urlId]);
