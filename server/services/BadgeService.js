@@ -36,11 +36,16 @@ class BadgeService {
 
             const msgCount = userMessages?.length || 0;
 
+            console.log(`[BadgeService] User stats: ${convCount} conversations, ${msgCount} messages`);
+
             // 3. Get existing user badges
-            const { data: userBadges } = await supabaseAdmin
+            const { data: userBadges, error: userBadgesError } = await supabaseAdmin
                 .from('user_badges')
                 .select('badgeId')
                 .eq('userId', userId);
+
+            if (userBadgesError) console.error('[BadgeService] userBadges Error:', userBadgesError);
+            console.log(`[BadgeService] User has ${userBadges?.length || 0} earned badges`);
 
             const earnedBadgeIds = new Set((userBadges || []).map(ub => ub.badgeId));
 
@@ -49,7 +54,10 @@ class BadgeService {
 
             for (const badge of badges) {
                 // Skip already earned badges
-                if (earnedBadgeIds.has(badge.id)) continue;
+                if (earnedBadgeIds.has(badge.id)) {
+                    console.log(`[BadgeService] Badge "${badge.name}" already earned, skipping`);
+                    continue;
+                }
 
                 // Parse criteria (default to empty object)
                 let criteria = {};
@@ -65,6 +73,7 @@ class BadgeService {
 
                 let triggered = false;
                 const badgeType = criteria.type || badge.category || 'milestone';
+                console.log(`[BadgeService] Checking badge "${badge.name}" (type: ${badgeType}, criteria: ${JSON.stringify(criteria)}, convs: ${convCount}, msgs: ${msgCount})`);
 
                 // Check trigger conditions
                 switch (badgeType) {
