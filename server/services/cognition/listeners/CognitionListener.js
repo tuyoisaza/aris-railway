@@ -1,6 +1,7 @@
 import EventManager from '../EventManager.js';
 import { prisma } from '../../../db.js';
 import jobQueue from '../../jobQueue.js';
+import ActionRegistry from '../../ActionRegistry.js';
 
 class CognitionListener {
     constructor() {
@@ -23,6 +24,11 @@ class CognitionListener {
             const isProposal = aiResponse.isProposal || (aiResponse.action && aiResponse.action.type === 'proposal');
             if (isProposal) {
                 await this.handleProposal(userId, conversationId, aiResponse);
+            }
+
+            const isResearch = aiResponse.action && aiResponse.action.type === 'research';
+            if (isResearch) {
+                await this.handleResearch(userId, conversationId, aiResponse);
             }
         } catch (err) {
             console.error('[CognitionListener] Error processing cognitive artifacts:', err);
@@ -80,6 +86,63 @@ class CognitionListener {
                 conversationId,
                 role: 'ai',
                 content: `I've drafted a project idea for you based on our chat: **${projectData.title || 'Project'}**. You can start it whenever you're ready.`
+            }
+        });
+    }
+
+    async handleResearch(userId, conversationId, aiResponse) {
+        console.log(`[CognitionListener] Processing Research for Conv ${conversationId}`);
+
+        const researchQuery = aiResponse.action?.payload?.query || userContent;
+        const researchPayload = {
+            type: 'research',
+            query: researchQuery,
+            status: 'researching'
+        };
+
+        await prisma.message.create({
+            data: {
+                conversationId,
+                role: 'system',
+                content: JSON.stringify(researchPayload)
+            }
+        });
+
+        jobQueue.addJob('research_triggered', {
+            conversationId,
+            userId,
+            query: researchQuery
+        });
+
+        const result = await ActionRegistry.execute('research:web', userId, {
+            query: researchQuery,
+            conversationId
+        });
+
+        const resultPayload = {
+            type: 'research_result',
+            query: researchQuery,
+            summary: result.summary,
+            sources: result.sources
+        };
+
+        await prisma.message.create({
+            data: {
+                conversationId,
+                role: 'system',
+                content: JSON.stringify(resultPayload)
+            }
+        });
+
+        const sourcesText = result.sources?.length > 0
+            ? `\n\n**Sources:**\n${result.sources.slice(0, 3).map((s, i) => `${i + 1}. [${s.title}](${s.url})`).join('\n')}`
+            : '';
+
+        await prisma.message.create({
+            data: {
+                conversationId,
+                role: 'ai',
+                content: `I did some research on "${researchQuery}" and found:\n\n${result.summary}${sourcesText}`
             }
         });
     }

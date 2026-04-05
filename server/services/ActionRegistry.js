@@ -349,4 +349,21 @@ registry.registerAction('skill:family_progress', 'light', async (userId, payload
     return { progressBroadcast: true };
 });
 
+// 10. WEB RESEARCH (Medium)
+// Trigger web research on a topic and save to user memory
+registry.registerAction('research:web', 'medium', async (userId, payload) => {
+    const { query, conversationId } = payload;
+    console.log(`[Action:Research] User ${userId} triggered web research: ${query}`);
+
+    const { default: ScoutAgent } = await import('../ai/agents/ScoutAgent.js');
+    const result = await ScoutAgent.webResearch(query, userId);
+
+    return {
+        researched: true,
+        query,
+        summary: result.summary,
+        sources: result.sources
+    };
+});
+
 export default registry;

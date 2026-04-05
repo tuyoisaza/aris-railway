@@ -16,6 +16,7 @@ class JobQueue extends EventEmitter {
         this.on('content_enriched', this.handleContentEnriched.bind(this));
         this.on('milestone_triggered', this.handleMilestoneTriggered.bind(this));
         this.on('ogma_checkpoint', this.handleOgmaCheckpoint.bind(this));
+        this.on('research_triggered', this.handleResearchTriggered.bind(this));
     }
 
     /**
@@ -151,6 +152,18 @@ class JobQueue extends EventEmitter {
             }
         } catch (err) {
             console.error(`[JobQueue] Ogma Handler Error:`, err);
+        }
+    }
+
+    /**
+     * 6. RESEARCH: Trigger web research on a topic
+     */
+    async handleResearchTriggered({ conversationId, userId, query }) {
+        try {
+            console.log(`[JobQueue] 🔍 Web research triggered for user ${userId}: "${query}"`);
+            await ScoutAgent.webResearch(query, userId);
+        } catch (err) {
+            console.error(`[JobQueue] Research Handler Error:`, err);
         }
     }
 }
