@@ -689,6 +689,8 @@ async function seedSkillsAndTopics() {
 
 async function backfillMessageAuthorIds() {
     try {
+        const { prisma } = await import('./db.js');
+        
         const messagesWithoutAuthor = await prisma.message.findMany({
             where: {
                 role: 'user',

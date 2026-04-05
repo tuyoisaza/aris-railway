@@ -1,6 +1,6 @@
 import express from 'express';
-import { requireAuth, sendError, sendSuccess } from '../../middleware.js';
-import ScoutAgent from '../../services/ai/agents/ScoutAgent.js';
+import { requireAuth, sendError, sendSuccess } from '../middleware.js';
+import ScoutAgent from '../services/ai/agents/ScoutAgent.js';
 
 const router = express.Router();
 
