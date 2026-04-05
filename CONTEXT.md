@@ -1,8 +1,8 @@
 # ARIS Project Context
 
-**Last Updated**: 2026-04-04
-**Current Version**: 0.0.107
-**Status**: All systems operational - Badge system working
+**Last Updated**: 2026-04-05
+**Current Version**: 0.0.121
+**Status**: Guided Actions system implemented
 
 ## Commit Message Convention
 
@@ -13,7 +13,7 @@ v0.0.X: <description>
 
 Example:
 ```
-v0.0.107: Remove debug logging from listeners
+v0.0.121: Add frontend GuidedActionCard and WebSocket listener
 ```
 
 ## Deployment
@@ -24,66 +24,51 @@ v0.0.107: Remove debug logging from listeners
 | Railway | https://aris-railway-production.up.railway.app |
 | GitHub | https://github.com/tuyoisaza/aris-railway |
 
-## Current Stats
+## Guided Actions System
 
-- **Users**: 2
-- **Conversations**: 12
-- **Messages**: 74
-- **Badges**: 4 total, 2 earned
+The Guided Actions system enables AI agents to proactively suggest topics, projects, skills, and conversations during chat.
 
-## Recent Changes
+### Flow
+1. User sends message → TeacherAgent responds with JSON including `action` field
+2. CognitionListener detects `action.type` in `['topic', 'project', 'skill', 'conversation']`
+3. `GUIDED_ACTION_SUGGESTED` event emitted via EventManager
+4. Frontend receives via WebSocket, displays GuidedActionCard
+5. User accepts → POST `/api/agora/action` → handler creates entity
 
-### v0.0.107 (2026-04-04)
-- Remove debug logging from listeners
+### Files
+- `server/routes/agora-actions.js` - Action handlers (topic/project/skill/conversation)
+- `server/routes/agora.js` - `/agora/action` and `/agora/actions` routes
+- `server/services/cognition/listeners/CognitionListener.js` - Detects guided actions
+- `server/services/cognition/EventManager.js` - GUIDED_ACTION_SUGGESTED event
+- `src/features/guided-actions/GuidedActionCard.tsx` - UI card component
+- `src/features/conversation/ConversationPage.tsx` - WebSocket listener
 
-### v0.0.106 (2026-04-04)
-- Fix TableQuery - convert camelCase to snake_case for Prisma
-
-### v0.0.105 (2026-04-04)
-- Fix BadgeService Prisma field names (snake_case to camelCase)
-
-### v0.0.104 (2026-04-04)
-- Fix socketServer import path in ExperienceListener
-
-### v0.0.102 (2026-04-04)
-- Set authorId on user messages for badge tracking
-
-### v0.0.101 (2026-04-04)
-- Emit AI_RESPONSE_COMPLETED event from chat.js for badge/milestone processing
+### Update Prompt
+Run `node server/scripts/update-teacher-prompt.js` to update the teacher prompt in the database.
 
 ## Event System
 
 The Cognition/Gamification event system is now fully operational:
 - **EventManager**: Central event emitter in `server/services/cognition/EventManager.js`
-- **CognitionListener**: Handles milestones and proposals from AI responses
+- **CognitionListener**: Handles milestones, proposals, and guided actions
 - **GamificationListener**: Evaluates and awards badges
 - **ExperienceListener**: Handles XP awards
 
-Events flow:
-1. User sends chat message → `chat.js`
-2. AI responds → `TeacherAgent`
-3. Message saved → `EventManager.emitEvent('AI_RESPONSE_COMPLETED')`
-4. Listeners process → badges evaluated, milestones checked
+## Recent Changes
+
+### v0.0.121 (2026-04-05)
+- Add frontend GuidedActionCard and WebSocket listener
+
+### v0.0.120 (2026-04-05)
+- Implement Guided Actions system - Agora actions, topic/project/skill/conversation handlers
+
+### v0.0.119 (2026-04-04)
+- Add research action to ActionRegistry and CognitionListener
 
 ## Known Issues
 
 1. **Google OAuth**: Disabled on login page ("coming soon")
 2. **Stripe**: Disabled (stubbed)
-3. **GitHub Actions Railway deploy**: Failing (token issue) - Railway auto-deploys on push anyway
-
-## Environment Variables (Railway)
-
-```
-DATABASE_URL=file:/app/server/data/aris.db
-JWT_SECRET=<64-char secret>
-OPENAI_API_KEY=<key>
-GOOGLE_CLIENT_ID=<Google Cloud Console>
-GOOGLE_CLIENT_SECRET=<Google Cloud Console>
-GOOGLE_REDIRECT_URI=https://aris.tuyoisaza.com/api/auth/google/callback
-FRONTEND_URL=https://aris.tuyoisaza.com
-PORT=8080
-NODE_ENV=production
-```
 
 ## Tech Stack
 
@@ -96,7 +81,7 @@ NODE_ENV=production
 
 ## AI Agents
 
-1. **TeacherAgent** - Main conversation agent
+1. **TeacherAgent** - Main conversation agent (supports guided actions)
 2. **CartographerAgent** - Topic mapping/structuring
 3. **CartographerRelationships** - Relationship mapping
 4. **LibrarianAgent** - Content enrichment
