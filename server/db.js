@@ -212,8 +212,7 @@ class TableQuery {
             const select = this._select.split(',').reduce((acc, col) => {
                 const c = col.trim();
                 if (c.startsWith('*,') || c.endsWith(',*')) return null;
-                const snakeCol = c.replace(/([A-Z])/g, '_$1').toLowerCase();
-                acc[snakeCol] = true;
+                acc[c] = true;
                 return acc;
             }, {});
             if (Object.keys(select).length > 0) args.select = select;
