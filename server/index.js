@@ -334,7 +334,9 @@ async function loadRoutes() {
     const { default: agoraRoutes } = await import('./routes/agora.js');
     const { default: usersRoutes } = await import('./routes/users.js');
     const { default: billingRoutes } = await import('./routes/billing.js');
+    const { default: researchRoutes } = await import('./routes/research.js');
 
+    app.use('/api/research', researchRoutes);
     app.use('/api/auth', authRoutes);
     app.use('/api/chat', chatRoutes);
     app.use('/api/topics', topicsRoutes);

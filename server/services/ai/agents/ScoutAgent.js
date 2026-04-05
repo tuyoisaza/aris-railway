@@ -1,5 +1,6 @@
 import BaseAgent from './BaseAgent.js';
 import { prisma } from '../../../db.js';
+import WebResearchService from '../../WebResearchService.js';
 
 class ScoutAgent extends BaseAgent {
     constructor() {
@@ -76,6 +77,57 @@ Return JSON array of resources.`;
         } catch (err) {
             console.error('[Scout] Research parse error:', err);
             return [];
+        }
+    }
+
+    async webResearch(query, userId = null) {
+        console.log(`[Scout] Performing web research for: ${query}`);
+
+        try {
+            const researchResult = await WebResearchService.researchAndSummarize(query);
+            
+            if (userId) {
+                await this.saveToMemory(userId, query, researchResult);
+            }
+
+            return researchResult;
+        } catch (err) {
+            console.error('[Scout] Web research error:', err);
+            return {
+                query,
+                summary: 'An error occurred while researching.',
+                sources: [],
+                error: err.message
+            };
+        }
+    }
+
+    async saveToMemory(userId, query, researchResult) {
+        try {
+            const memoryEntry = {
+                type: 'web_research',
+                query: query,
+                summary: researchResult.summary,
+                sources: researchResult.sources,
+                timestamp: new Date().toISOString()
+            };
+
+            await prisma.agoraUserMemory.create({
+                data: {
+                    userId: userId,
+                    traitType: 'web_research',
+                    traitName: query.substring(0, 100),
+                    traitValue: JSON.stringify(memoryEntry),
+                    metadata: JSON.stringify({
+                        source: 'web_search',
+                        resultCount: researchResult.sources?.length || 0
+                    })
+                }
+            });
+
+            console.log(`[Scout] Saved research to memory for user ${userId}`);
+        } catch (err) {
+            console.error('[Scout] Error saving to memory:', err);
         }
     }
 }
